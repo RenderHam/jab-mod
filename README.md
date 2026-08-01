@@ -1,6 +1,11 @@
 # Just A Browser Mod
 
+<<<<<<< HEAD
 ## WARNING THIS PROJECT IS STILL EXPERIMENTAL
+=======
+> **Experimental** — this project is still in active development. Expect rough edges,
+> breaking changes and incomplete features between releases.
+>>>>>>> ab896a0 (Docs)
 
 **Just A Browser Mod** (JAB) adds fully functional web screens to Minecraft. Build a wall of
 screen blocks, point at it and run a command, and the wall turns into a live browser panel
@@ -65,6 +70,17 @@ A `config/jab.properties` file is generated on first run:
 
 The built jar lands in `build/libs/`. Drop it (plus the requirements above) into your
 `mods/` folder.
+
+## Credits
+
+This mod is heavily inspired by (and builds on) the work of others:
+
+- **[MCEF fork by Keksuccino](https://github.com/Keksuccino/mcef)** — the embedded Chromium
+  framework that powers the browser rendering
+- **[BrowserMod by Mcjunky33](https://github.com/Mcjunky33/BrowserMod)** — the original
+  in-game browser concept
+- **[WebDisplays by CinemaMod](https://github.com/CinemaMod/webdisplays)** — multiblock
+  screen walls in Minecraft
 
 ## License
 
