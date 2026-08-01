@@ -1,6 +1,6 @@
 # Just A Browser Mod
 
-<span style="color: red">**WARNING THIS PROJECT IS STILL EXPERIMENTAL**</span>.
+# !! WARNING THIS PROJECT IS STILL EXPERIMENTAL !!
 
 **Just A Browser Mod** (JAB) adds fully functional web screens to Minecraft. Build a wall of
 screen blocks, point at it and run a command, and the wall turns into a live browser panel
