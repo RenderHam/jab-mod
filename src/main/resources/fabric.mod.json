@@ -1,0 +1,29 @@
+{
+	"schemaVersion": 1,
+	"id": "jab",
+	"version": "${version}",
+	"name": "Just A Browser Mod",
+	"description": "Embedded Chromium browsers rendered on multiblock screen walls. Surf the web, watch videos and listen to audio from inside Minecraft.",
+	"authors": [
+		"Renderham"
+	],
+	"contact": {},
+	"license": "CC0-1.0",
+	"icon": "assets/jab/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.jab.JabMod"
+		],
+		"client": [
+			"com.jab.client.JabClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*",
+		"mcef": "*"
+	}
+}

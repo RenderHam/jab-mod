@@ -1,0 +1,19 @@
+{
+	"display": {
+		"icon": { "id": "jab:screen_block" },
+		"title": { "text": "Just A Browser Mod" },
+		"description": { "text": "Surf the web in Minecraft" },
+		"background": "minecraft:textures/block/black_concrete.png",
+		"frame": "task",
+		"show_toast": true,
+		"announce_to_chat": true
+	},
+	"criteria": {
+		"got_screen_block": {
+			"trigger": "minecraft:inventory_changed",
+			"conditions": {
+				"items": [{ "items": ["jab:screen_block"] }]
+			}
+		}
+	}
+}
