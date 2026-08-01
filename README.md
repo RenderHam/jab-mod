@@ -1,11 +1,6 @@
 # Just A Browser Mod
 
-<<<<<<< HEAD
-## WARNING THIS PROJECT IS STILL EXPERIMENTAL
-=======
-> **Experimental** — this project is still in active development. Expect rough edges,
-> breaking changes and incomplete features between releases.
->>>>>>> ab896a0 (Docs)
+<span style="color: red">**WARNING THIS PROJECT IS STILL EXPERIMENTAL**</span>.
 
 **Just A Browser Mod** (JAB) adds fully functional web screens to Minecraft. Build a wall of
 screen blocks, point at it and run a command, and the wall turns into a live browser panel
@@ -20,15 +15,15 @@ backed by an embedded Chromium instance (via [MCEF](https://github.com/Keksuccin
 - **Interactive browser view** — right-click a screen to open the full browser GUI with
   back/forward/reload buttons, a URL bar (`Ctrl+L` to focus), and full mouse and keyboard
   forwarding to the page.
-- **Audio modes** — screens can be set to *global* (page audio plays normally) or
-  *dynamic* (page volume is driven by your distance from the wall, with a 64-block falloff).
+- **Audio modes** — screens can be set to _global_ (page audio plays normally) or
+  _dynamic_ (page volume is driven by your distance from the wall, with a 64-block falloff).
 - **Per-face displays** — one wall can show a different page on each of its six faces.
 
 ## Requirements
 
 - Minecraft **1.21.11** (Fabric)
 - [Fabric API](https://modrinth.com/mod/fabric-api)
-- [MCEF](https://github.com/Keksuccino/mcef) (mcef-fabric, `2.2.0-1.21.11`)
+- [MCEF (Keksuccino Fork)](https://github.com/Keksuccino/mcef) (mcef-fabric, `2.2.0-1.21.11`)
 
 ## Usage
 
@@ -54,13 +49,13 @@ half-broken state.
 
 A `config/jab.properties` file is generated on first run:
 
-| Key | Default | Description |
-|---|---|---|
-| `maxScreenSize` | `8` | Maximum wall dimension in blocks |
-| `defaultResolutionX/Y` | `1920x1080` | Browser render resolution for new screens |
-| `maxResolution` | `3840` | Hard cap on resolution |
-| `defaultUrl` | `https://www.google.com` | Page loaded when a screen is created |
-| `loadDistance` / `unloadDistance` | `32` / `48` | Browser lifecycle distance from the wall |
+| Key                               | Default                  | Description                               |
+| --------------------------------- | ------------------------ | ----------------------------------------- |
+| `maxScreenSize`                   | `8`                      | Maximum wall dimension in blocks          |
+| `defaultResolutionX/Y`            | `1920x1080`              | Browser render resolution for new screens |
+| `maxResolution`                   | `3840`                   | Hard cap on resolution                    |
+| `defaultUrl`                      | `https://www.google.com` | Page loaded when a screen is created      |
+| `loadDistance` / `unloadDistance` | `32` / `48`              | Browser lifecycle distance from the wall  |
 
 ## Building
 
