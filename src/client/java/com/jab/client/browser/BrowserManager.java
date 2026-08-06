@@ -1,7 +1,7 @@
 package com.jab.client.browser;
 
-import com.cinemamod.mcef.MCEF;
-import com.cinemamod.mcef.MCEFBrowser;
+import de.keksuccino.rinku.Rinku;
+import de.keksuccino.rinku.RinkuBrowser;
 
 import com.jab.JabMod;
 
@@ -12,50 +12,50 @@ import java.util.Iterator;
 import java.util.Map;
 
 /**
- * Thin wrapper around MCEF's browser lifecycle. MCEF initialization is async,
+ * Thin wrapper around Rinku's browser lifecycle. Rinku initialization is async,
  * so browsers can only be created after the init callback has fired.
  */
 public class BrowserManager {
-	private static final Map<Integer, MCEFBrowser> browsers = new HashMap<>();
+	private static final Map<Integer, RinkuBrowser> browsers = new HashMap<>();
 	private static boolean initialized = false;
 
 	public static void init() {
 		if (initialized) return;
-		MCEF.scheduleForInit(success -> {
+		Rinku.scheduleForInit(success -> {
 			if (success) {
 				initialized = true;
-				JabMod.LOGGER.info("MCEF initialized");
+				JabMod.LOGGER.info("Rinku initialized");
 			} else {
-				JabMod.LOGGER.error("Failed to initialize MCEF");
+				JabMod.LOGGER.error("Failed to initialize Rinku");
 			}
 		});
 	}
 
-	public static MCEFBrowser createBrowser(String url, boolean transparent) {
+	public static RinkuBrowser createBrowser(String url, boolean transparent) {
 		if (!initialized) return null;
-		MCEFBrowser browser = MCEF.createBrowser(url, transparent);
+		RinkuBrowser browser = Rinku.createBrowser(url, transparent);
 		if (browser != null) {
 			browsers.put(browser.getIdentifier(), browser);
 		}
 		return browser;
 	}
 
-	public static MCEFBrowser createBrowser(String url, boolean transparent, int width, int height) {
+	public static RinkuBrowser createBrowser(String url, boolean transparent, int width, int height) {
 		if (!initialized) {
-			JabMod.LOGGER.warn("MCEF not initialized yet, cannot create browser (url={})", url);
+			JabMod.LOGGER.warn("Rinku not initialized yet, cannot create browser (url={})", url);
 			return null;
 		}
-		MCEFBrowser browser = MCEF.createBrowser(url, transparent, width, height);
+		RinkuBrowser browser = Rinku.createBrowser(url, transparent, width, height);
 		if (browser != null) {
 			browsers.put(browser.getIdentifier(), browser);
 			JabMod.LOGGER.info("Created browser id={} url={} {}x{}", browser.getIdentifier(), url, width, height);
 		} else {
-			JabMod.LOGGER.warn("MCEF.createBrowser returned null (url={})", url);
+			JabMod.LOGGER.warn("Rinku.createBrowser returned null (url={})", url);
 		}
 		return browser;
 	}
 
-	public static void destroyBrowser(MCEFBrowser browser) {
+	public static void destroyBrowser(RinkuBrowser browser) {
 		if (browser == null) return;
 		browsers.remove(browser.getIdentifier());
 		browser.close();
@@ -66,9 +66,9 @@ public class BrowserManager {
 	}
 
 	private static void cleanup() {
-		Iterator<MCEFBrowser> it = browsers.values().iterator();
+		Iterator<RinkuBrowser> it = browsers.values().iterator();
 		while (it.hasNext()) {
-			MCEFBrowser browser = it.next();
+			RinkuBrowser browser = it.next();
 			browser.close();
 			it.remove();
 		}

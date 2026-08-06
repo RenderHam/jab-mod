@@ -1,6 +1,6 @@
 package com.jab.client;
 
-import com.cinemamod.mcef.MCEF;
+import de.keksuccino.rinku.Rinku;
 
 import com.jab.blockentity.ScreenBlockEntity;
 import com.jab.client.browser.AudioModeHandler;
@@ -28,7 +28,7 @@ public class JabClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		// Browsing data should never be persisted between sessions.
-		MCEF.getSettings().setUseCache(false);
+		Rinku.getSettings().setUseCache(false);
 		ClientNetworking.register();
 		BrowserManager.init();
 		ScreenBlockEntityRenderer.register();

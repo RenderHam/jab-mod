@@ -1,6 +1,6 @@
 package com.jab.client.render;
 
-import com.cinemamod.mcef.MCEFBrowser;
+import de.keksuccino.rinku.RinkuBrowser;
 
 import com.jab.blockentity.ScreenBlockEntity;
 import com.jab.client.browser.ScreenBrowserManager;
@@ -26,7 +26,7 @@ import org.joml.Vector3f;
 
 /**
  * Draws each screen as a textured quad floating a hair in front of its wall face.
- * The texture is the MCEF browser's frame, updated by MCEF itself.
+ * The texture is the Rinku browser's frame, updated by Rinku itself.
  */
 public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBlockEntity, ScreenBlockEntityRenderState> {
 	public ScreenBlockEntityRenderer(BlockEntityRendererProvider.Context ctx) {
@@ -53,7 +53,7 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 		if (state.screens == null || state.screens.isEmpty()) return;
 
 		for (ScreenData screen : state.screens) {
-			MCEFBrowser browser = ScreenBrowserManager.getBrowser(state.pos, screen.side);
+			RinkuBrowser browser = ScreenBrowserManager.getBrowser(state.pos, screen.side);
 			if (browser == null) continue;
 			if (!browser.isTextureReady()) continue;
 

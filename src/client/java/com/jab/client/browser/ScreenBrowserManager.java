@@ -1,6 +1,6 @@
 package com.jab.client.browser;
 
-import com.cinemamod.mcef.MCEFBrowser;
+import de.keksuccino.rinku.RinkuBrowser;
 
 import com.jab.JabMod;
 import com.jab.blockentity.ScreenBlockEntity;
@@ -25,7 +25,7 @@ import java.util.Map;
  * the wall's block entity exists is parked in {@link #pendingScreens} until it shows up.
  */
 public class ScreenBrowserManager {
-	private static final Map<String, MCEFBrowser> browserMap = new HashMap<>();
+	private static final Map<String, RinkuBrowser> browserMap = new HashMap<>();
 	private static final Map<BlockPos, List<ScreenData>> pendingScreens = new HashMap<>();
 
 	private static String key(BlockPos pos, BlockSide side) {
@@ -38,7 +38,7 @@ public class ScreenBrowserManager {
 			String k = key(pos, s.side);
 			newScreens.put(k, s);
 			if (!browserMap.containsKey(k)) {
-				MCEFBrowser browser = BrowserManager.createBrowser(s.url, false, s.resX, s.resY);
+				RinkuBrowser browser = BrowserManager.createBrowser(s.url, false, s.resX, s.resY);
 				if (browser != null) {
 					browserMap.put(k, browser);
 				} else {
@@ -60,13 +60,13 @@ public class ScreenBrowserManager {
 		AudioModeHandler.sync(pos, screens);
 	}
 
-	public static MCEFBrowser getBrowser(BlockPos pos, BlockSide side) {
+	public static RinkuBrowser getBrowser(BlockPos pos, BlockSide side) {
 		return browserMap.get(key(pos, side));
 	}
 
 	public static void updateScreen(BlockPos pos, ScreenData screen) {
 		String k = key(pos, screen.side);
-		MCEFBrowser browser = browserMap.get(k);
+		RinkuBrowser browser = browserMap.get(k);
 		if (browser != null) {
 			// Only reload when the URL actually changed so resizing or audio toggles
 			// don't interrupt the page.

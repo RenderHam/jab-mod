@@ -1,6 +1,6 @@
 package com.jab.client.gui;
 
-import com.cinemamod.mcef.MCEFBrowser;
+import de.keksuccino.rinku.RinkuBrowser;
 
 import com.jab.JabMod;
 import com.jab.client.browser.ScreenBrowserManager;
@@ -31,7 +31,7 @@ public class BrowserScreen extends Screen {
 	private final int resX;
 	private final int resY;
 	private String currentUrl;
-	private MCEFBrowser browser;
+	private RinkuBrowser browser;
 	private EditBox urlBox;
 	private int displayX;
 	private int displayY;

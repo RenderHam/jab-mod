@@ -4,7 +4,7 @@
 
 **Just A Browser Mod** (JAB) adds fully functional web screens to Minecraft. Build a wall of
 screen blocks, point at it and run a command, and the wall turns into a live browser panel
-backed by an embedded Chromium instance (via [MCEF](https://github.com/Keksuccino/mcef)).
+backed by an embedded Chromium instance (via [Rinku](https://github.com/Keksuccino/Rinku)).
 
 ## Features
 
@@ -23,7 +23,9 @@ backed by an embedded Chromium instance (via [MCEF](https://github.com/Keksuccin
 
 - Minecraft **1.21.11** (Fabric)
 - [Fabric API](https://modrinth.com/mod/fabric-api)
-- [MCEF (Keksuccino Fork)](https://github.com/Keksuccino/mcef) (mcef-fabric, `2.2.0-1.21.11`)
+- [Rinku](https://github.com/Keksuccino/Rinku) (rinku-fabric, `3.0.1-1.21.11`)
+
+> On first launch Rinku downloads its Chromium native binaries — this may take a few minutes.
 
 ## Usage
 
@@ -70,8 +72,8 @@ The built jar lands in `build/libs/`. Drop it (plus the requirements above) into
 
 This mod is heavily inspired by (and builds on) the work of others:
 
-- **[MCEF fork by Keksuccino](https://github.com/Keksuccino/mcef)** — the embedded Chromium
-  framework that powers the browser rendering
+- **[Rinku by Keksuccino](https://github.com/Keksuccino/Rinku)** — the embedded Chromium
+  framework (successor of Keksuccino's MCEF fork) that powers the browser rendering
 - **[BrowserMod by Mcjunky33](https://github.com/Mcjunky33/BrowserMod)** — the original
   in-game browser concept
 - **[WebDisplays by CinemaMod](https://github.com/CinemaMod/webdisplays)** — multiblock

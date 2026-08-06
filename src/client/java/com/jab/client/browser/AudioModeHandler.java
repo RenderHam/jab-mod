@@ -1,6 +1,6 @@
 package com.jab.client.browser;
 
-import com.cinemamod.mcef.MCEFBrowser;
+import de.keksuccino.rinku.RinkuBrowser;
 
 import com.jab.data.ScreenData;
 import com.jab.util.BlockSide;
@@ -80,7 +80,7 @@ public class AudioModeHandler {
 
 				float lastVol = entry.getValue();
 				if (Math.abs(volume - lastVol) > 0.01f) {
-					MCEFBrowser browser = ScreenBrowserManager.getBrowser(pos, side);
+					RinkuBrowser browser = ScreenBrowserManager.getBrowser(pos, side);
 					if (browser != null) {
 						String js = "document.querySelectorAll('video,audio').forEach(function(e){e.volume=" + volume + "})";
 						browser.executeJavaScript(js, "", 0);

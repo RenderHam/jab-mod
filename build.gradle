@@ -30,8 +30,8 @@ dependencies {
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-	// MCEF provides the embedded Chromium browser
-	modImplementation "de.keksuccino:mcef-fabric:${project.mcef_version}"
+	// Rinku provides the embedded Chromium browser
+	modImplementation "de.keksuccino:rinku-fabric:${project.rinku_version}"
 }
 
 processResources {
