@@ -38,3 +38,11 @@ hs_err_*.log
 replay_*.log
 *.hprof
 *.jfr
+
+# ai tooling (kept local only)
+
+.agents/
+AGENTS.md
+PROMPT.md
+opencode.json
+skills-lock.json
