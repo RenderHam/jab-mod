@@ -12,9 +12,9 @@ backed by an embedded Chromium instance (via [Rinku](https://github.com/Keksucci
   display, on any face of any side of the blocks (walls, floors, ceilings).
 - **Real browser rendering** — pages render onto the blocks in-game with texture quality
   tied to the GUI scale.
-- **Interactive browser view** — right-click a screen to open the full browser GUI with
-  back/forward/reload buttons, a URL bar (`Ctrl+L` to focus), and full mouse and keyboard
-  forwarding to the page.
+- **Interactive browser view** — right-click a screen to open the browser GUI with a URL
+  bar (`Ctrl+L` to focus) and full mouse and keyboard forwarding to the page. In-page
+  navigation (links, back/forward) works natively and stays in sync with the wall.
 - **Audio modes** — screens can be set to _global_ (page audio plays normally) or
   _dynamic_ (page volume is driven by your distance from the wall, with a 64-block falloff).
 - **Per-face displays** — one wall can show a different page on each of its six faces.
@@ -25,18 +25,20 @@ backed by an embedded Chromium instance (via [Rinku](https://github.com/Keksucci
 - [Fabric API](https://modrinth.com/mod/fabric-api)
 - [Rinku](https://github.com/Keksuccino/Rinku) (rinku-fabric, `3.0.1-1.21.11`)
 
+> Use the **patched Rinku jar from the release** — the published 3.0.1 jar crashes at
+> startup (missing mixin refmap entry; upstream [Keksuccino/Rinku#11](https://github.com/Keksuccino/Rinku/issues/11)).
+
 > On first launch Rinku downloads its Chromium native binaries — this may take a few minutes.
 
 ## Usage
 
-1. Craft screen blocks (4 per craft: iron ingots + redstone) and build a flat wall.
+1. Craft screen blocks (1 iron ingot + 1 redstone, shapeless) and build a flat wall.
 2. Look at the wall and run:
 
 ```
 /jab create                     # create a display on the face you're looking at
 /jab create https://youtube.com # create and load a URL immediately
 /jab url <url>                  # change the page on the wall you're looking at
-/jab resolution <w> <h>         # set the render resolution (default 1920x1080)
 /jab audio global|dynamic       # switch audio mode for the wall
 /jab remove                     # remove the display
 /jab debug                      # print server-side wall info for debugging
@@ -54,10 +56,10 @@ A `config/jab.properties` file is generated on first run:
 | Key                               | Default                  | Description                               |
 | --------------------------------- | ------------------------ | ----------------------------------------- |
 | `maxScreenSize`                   | `8`                      | Maximum wall dimension in blocks          |
-| `defaultResolutionX/Y`            | `1920x1080`              | Browser render resolution for new screens |
-| `maxResolution`                   | `3840`                   | Hard cap on resolution                    |
+| `defaultResolutionX/Y`            | `1920x1080`              | Browser render resolution for new screens (fixed at creation) |
 | `defaultUrl`                      | `https://www.google.com` | Page loaded when a screen is created      |
 | `loadDistance` / `unloadDistance` | `32` / `48`              | Browser lifecycle distance from the wall  |
+| `maxBrowsers`                     | `16`                     | Concurrent browser cap (extra screens park) |
 
 ## Building
 
