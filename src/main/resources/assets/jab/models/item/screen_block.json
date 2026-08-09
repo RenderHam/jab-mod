@@ -1,3 +1,6 @@
 {
-  "parent": "jab:block/screen_block"
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "jab:item/screen_block"
+  }
 }

@@ -9,13 +9,9 @@ import com.jab.registry.ModItems;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
+import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.CreativeModeTabs;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,11 +31,8 @@ public class JabMod implements ModInitializer {
 		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) ->
 				JabCommand.register(dispatcher));
 
-		Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, id("tab"), FabricItemGroup.builder()
-				.title(Component.translatable("itemGroup.jab"))
-				.icon(() -> new ItemStack(ModBlocks.SCREEN_BLOCK))
-				.displayItems((ctx, entries) -> entries.accept(ModBlocks.SCREEN_BLOCK))
-				.build());
+		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS)
+				.register(entries -> entries.accept(ModBlocks.SCREEN_BLOCK));
 	}
 
 	public static String id(String path) {

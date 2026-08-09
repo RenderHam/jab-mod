@@ -8,7 +8,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 
 public class ModItems {
 	private static Item.Properties props(String name) {
@@ -17,12 +16,7 @@ public class ModItems {
 				Identifier.fromNamespaceAndPath(JabMod.MOD_ID, name)));
 	}
 
-	public static final Item SCREEN_BLOCK_ITEM = new BlockItem(ModBlocks.SCREEN_BLOCK, props("screen_block")) {
-		@Override
-		public ItemStack getDefaultInstance() {
-			return new ItemStack(this);
-		}
-	};
+	public static final Item SCREEN_BLOCK_ITEM = new BlockItem(ModBlocks.SCREEN_BLOCK, props("screen_block"));
 
 	public static void register() {
 		Registry.register(BuiltInRegistries.ITEM, JabMod.id("screen_block"), SCREEN_BLOCK_ITEM);

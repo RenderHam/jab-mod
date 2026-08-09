@@ -5,10 +5,12 @@ import de.keksuccino.rinku.RinkuBrowser;
 
 import com.jab.JabMod;
 
+import net.minecraft.client.Minecraft;
+
 import org.cef.network.CefCookieManager;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -31,15 +33,6 @@ public class BrowserManager {
 		});
 	}
 
-	public static RinkuBrowser createBrowser(String url, boolean transparent) {
-		if (!initialized) return null;
-		RinkuBrowser browser = Rinku.createBrowser(url, transparent);
-		if (browser != null) {
-			browsers.put(browser.getIdentifier(), browser);
-		}
-		return browser;
-	}
-
 	public static RinkuBrowser createBrowser(String url, boolean transparent, int width, int height) {
 		if (!initialized) {
 			JabMod.LOGGER.warn("Rinku not initialized yet, cannot create browser (url={})", url);
@@ -59,29 +52,46 @@ public class BrowserManager {
 		if (browser == null) return;
 		browsers.remove(browser.getIdentifier());
 		browser.close();
+		wipeBrowsingData();
+		resetCursor();
+	}
+
+	/** Session-only privacy: every browser destroy clears the in-memory cookie jar. */
+	public static void wipeBrowsingData() {
+		try {
+			CefCookieManager.getGlobalManager().deleteCookies("", "");
+		} catch (Exception e) {
+			JabMod.LOGGER.warn("Failed to delete cookies", e);
+		}
 	}
 
 	public static boolean isInitialized() {
 		return initialized;
 	}
 
-	private static void cleanup() {
-		Iterator<RinkuBrowser> it = browsers.values().iterator();
-		while (it.hasNext()) {
-			RinkuBrowser browser = it.next();
-			browser.close();
-			it.remove();
+	/**
+	 * Restores the cursor to Minecraft's own state after a browser dies. Rinku swaps
+	 * GLFW cursor settings while hovering a page (hidden over canvas, custom handle over
+	 * links) and leaves them stale or freed when the browser is destroyed. With a GUI
+	 * open the visible OS cursor is restored; outside a GUI the captured/invisible
+	 * gameplay state is restored so the OS cursor never pops back in mid-game.
+	 */
+	public static void resetCursor() {
+		try {
+			long win = Minecraft.getInstance().getWindow().handle();
+			if (win != 0) {
+				boolean guiOpen = Minecraft.getInstance().screen != null;
+				int mode = guiOpen ? GLFW.GLFW_CURSOR_NORMAL : GLFW.GLFW_CURSOR_DISABLED;
+				GLFW.glfwSetInputMode(win, GLFW.GLFW_CURSOR, mode);
+				GLFW.glfwSetCursor(win, 0L);
+			}
+		} catch (Exception e) {
+			JabMod.LOGGER.warn("Failed to reset cursor", e);
 		}
 	}
 
 	/** Called when the client shuts down. Closes every browser and wipes browsing data. */
 	public static void shutdown() {
-		ScreenBrowserManager.cleanup();
-		cleanup();
-		try {
-			CefCookieManager.getGlobalManager().deleteCookies("", "");
-		} catch (Exception e) {
-			JabMod.LOGGER.warn("Failed to delete cookies on shutdown", e);
-		}
+		ScreenBrowserManager.onShutdownCleanup();
 	}
 }

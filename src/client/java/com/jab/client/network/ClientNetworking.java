@@ -3,15 +3,22 @@ package com.jab.client.network;
 import com.jab.blockentity.ScreenBlockEntity;
 import com.jab.client.browser.ScreenBrowserManager;
 import com.jab.data.ScreenData;
+import com.jab.network.packet.ScreenActionC2SPacket;
 import com.jab.network.packet.ScreenStateS2CPacket;
 import com.jab.network.packet.ScreenUpdateS2CPacket;
+import com.jab.util.BlockSide;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class ClientNetworking {
+	public static void sendUrl(BlockPos pos, BlockSide side, String url) {
+		ClientPlayNetworking.send(new ScreenActionC2SPacket(pos, side, url));
+	}
+
 	public static void register() {
 		ClientPlayNetworking.registerGlobalReceiver(ScreenStateS2CPacket.ID, (payload, ctx) -> {
 			ctx.client().execute(() -> {
@@ -48,7 +55,6 @@ public class ClientNetworking {
 						existing.resX = update.resX;
 						existing.resY = update.resY;
 						existing.audioMode = update.audioMode;
-						existing.active = update.active;
 					} else {
 						ScreenBrowserManager.applyUpdate(payload.pos(), update);
 					}

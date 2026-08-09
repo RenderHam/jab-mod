@@ -3,12 +3,13 @@ package com.jab.client.gui;
 import de.keksuccino.rinku.RinkuBrowser;
 
 import com.jab.JabMod;
+import com.jab.client.browser.BrowserManager;
 import com.jab.client.browser.ScreenBrowserManager;
+import com.jab.client.network.ClientNetworking;
 import com.jab.util.BlockSide;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
@@ -22,15 +23,15 @@ import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * The interactive browser view. A toolbar with navigation buttons and a URL bar sits
- * on top; everything below it is the live page, which receives mouse and keyboard input.
+ * The interactive browser view. A URL bar sits on top; everything below it is the live
+ * page, which receives mouse and keyboard input. URL changes round-trip to the server
+ * so the wall state stays authoritative.
  */
 public class BrowserScreen extends Screen {
 	private final BlockPos pos;
 	private final int sideOrd;
-	private final int resX;
-	private final int resY;
 	private String currentUrl;
+	private String syncedUrl;
 	private RinkuBrowser browser;
 	private EditBox urlBox;
 	private int displayX;
@@ -38,16 +39,23 @@ public class BrowserScreen extends Screen {
 	private int displayW;
 	private int displayH;
 	private static final int TOOLBAR_HEIGHT = 30;
-	private boolean browserLoading = true;
 	private boolean browserNotReadyLogged = false;
+	private int fetchRetryTick = 0;
 
-	public BrowserScreen(BlockPos pos, int sideOrd, String currentUrl, int resX, int resY) {
+	public BrowserScreen(BlockPos pos, int sideOrd, String currentUrl) {
 		super(Component.literal("JAB - Browser"));
 		this.pos = pos;
 		this.sideOrd = sideOrd;
 		this.currentUrl = currentUrl != null ? currentUrl : "about:blank";
-		this.resX = resX;
-		this.resY = resY;
+		this.syncedUrl = this.currentUrl;
+	}
+
+	public BlockPos getPos() {
+		return pos;
+	}
+
+	public int getSideOrdinal() {
+		return sideOrd;
 	}
 
 	@Override
@@ -63,8 +71,10 @@ public class BrowserScreen extends Screen {
 	public void tick() {
 		super.tick();
 		if (browser == null || !browser.isTextureReady()) {
-			fetchBrowser();
+			fetchRetryTick++;
+			if (fetchRetryTick % 20 == 1) fetchBrowser();
 		}
+		syncUrlFromBrowser();
 	}
 
 	@Override
@@ -92,48 +102,38 @@ public class BrowserScreen extends Screen {
 	}
 
 	private void fetchBrowser() {
+		ScreenBrowserManager.ensureBrowser(pos, BlockSide.values()[sideOrd]);
 		browser = ScreenBrowserManager.getBrowser(pos, BlockSide.values()[sideOrd]);
 		if (browser == null) {
 			if (!browserNotReadyLogged) {
 				JabMod.LOGGER.info("Browser not ready yet for {} side={}", pos, BlockSide.values()[sideOrd]);
 				browserNotReadyLogged = true;
 			}
-		} else {
-			browserLoading = false;
 		}
 	}
 
 	private void initToolbar() {
-		int buttonSize = 24;
 		int padding = 4;
-		int startX = padding;
-		int centerY = TOOLBAR_HEIGHT / 2 - buttonSize / 2;
-
-		Button backButton = Button.builder(Component.literal("<"), btn -> {
-			if (browser != null) browser.goBack();
-		}).bounds(startX, centerY, buttonSize, buttonSize).build();
-		addRenderableWidget(backButton);
-
-		Button forwardButton = Button.builder(Component.literal(">"), btn -> {
-			if (browser != null) browser.goForward();
-		}).bounds(startX + buttonSize + padding, centerY, buttonSize, buttonSize).build();
-		addRenderableWidget(forwardButton);
-
-		Button reloadButton = Button.builder(Component.literal("\u27F3"), btn -> {
-			if (browser != null) browser.reload();
-		}).bounds(startX + 2 * (buttonSize + padding), centerY, buttonSize, buttonSize).build();
-		addRenderableWidget(reloadButton);
-
-		int urlBoxX = startX + 3 * (buttonSize + padding) + padding;
-		int urlBoxWidth = width - urlBoxX - padding * 2;
-		int urlBoxY = (TOOLBAR_HEIGHT - 20) / 2;
-		urlBox = new EditBox(font, urlBoxX, urlBoxY, urlBoxWidth, 20, Component.literal("URL"));
+		urlBox = new EditBox(font, padding, (TOOLBAR_HEIGHT - 20) / 2, width - padding * 2, 20, Component.literal("URL"));
 		urlBox.setMaxLength(2048);
 		urlBox.setValue(currentUrl);
 		urlBox.setCursorPosition(currentUrl.length());
 		urlBox.setBordered(true);
 		urlBox.setVisible(true);
 		addRenderableWidget(urlBox);
+	}
+
+	/** Round-trips in-page navigation (back/forward/links) to the server. */
+	private void syncUrlFromBrowser() {
+		if (browser == null || urlBox == null || urlBox.isFocused()) return;
+		String current = browser.getURL();
+		if (current == null || current.equals(syncedUrl)) return;
+		syncedUrl = current;
+		currentUrl = current;
+		urlBox.setValue(current);
+		urlBox.setCursorPosition(current.length());
+		ClientNetworking.sendUrl(pos, BlockSide.values()[sideOrd], current);
+		JabMod.LOGGER.info("GUI URL synced to server for {} side={} -> {}", pos, BlockSide.values()[sideOrd], current);
 	}
 
 	@Override
@@ -152,11 +152,8 @@ public class BrowserScreen extends Screen {
 
 	private void renderBrowser(GuiGraphics guiGraphics) {
 		if (browser == null) {
-			fetchBrowser();
-			if (browser == null) {
-				drawLoadingText(guiGraphics);
-				return;
-			}
+			drawLoadingText(guiGraphics);
+			return;
 		}
 		if (!browser.isTextureReady()) {
 			drawLoadingText(guiGraphics);
@@ -169,10 +166,6 @@ public class BrowserScreen extends Screen {
 		}
 
 		guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texId, displayX, displayY, 0f, 0f, displayW, displayH, displayW, displayH);
-
-		if (browserLoading) {
-			browserLoading = false;
-		}
 	}
 
 	private void drawLoadingText(GuiGraphics guiGraphics) {
@@ -187,12 +180,15 @@ public class BrowserScreen extends Screen {
 		double mx = event.x();
 		double my = event.y();
 
-		if (urlBox != null && my < TOOLBAR_HEIGHT) {
-			urlBox.setFocused(true);
-			return urlBox.mouseClicked(event, true);
+		if (my < TOOLBAR_HEIGHT) {
+			if (urlBox != null && urlBox.isMouseOver(mx, my)) {
+				urlBox.setFocused(true);
+				return urlBox.mouseClicked(event, true);
+			}
+			return true;
 		}
 
-		if (browser != null && my >= TOOLBAR_HEIGHT) {
+		if (browser != null) {
 			int[] px = guiToBrowser(mx, my);
 			if (px != null) {
 				browser.sendMouseMove(px[0], px[1]);
@@ -287,14 +283,16 @@ public class BrowserScreen extends Screen {
 			url = "https://" + url;
 		}
 		currentUrl = url;
+		syncedUrl = url;
 		if (browser != null) {
 			browser.loadURL(url);
-			browserLoading = true;
 		}
 		if (urlBox != null) {
 			urlBox.setValue(url);
 			urlBox.setFocused(false);
 		}
+		ClientNetworking.sendUrl(pos, BlockSide.values()[sideOrd], url);
+		JabMod.LOGGER.info("GUI URL changed for {} side={} -> {}", pos, BlockSide.values()[sideOrd], url);
 	}
 
 	private int[] guiToBrowser(double guiX, double guiY) {
@@ -304,6 +302,13 @@ public class BrowserScreen extends Screen {
 		int bx = (int) (guiX * scale);
 		int by = (int) ((guiY - TOOLBAR_HEIGHT) * scale);
 		return new int[]{bx, by};
+	}
+
+	@Override
+	public void onClose() {
+		BrowserManager.resetCursor();
+		JabMod.LOGGER.info("Closed browser GUI for pos={} side={}", pos, BlockSide.values()[sideOrd]);
+		super.onClose();
 	}
 
 	@Override

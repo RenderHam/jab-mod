@@ -11,9 +11,9 @@ public class JabConfig {
 	public static int maxScreenSize = 8;
 	public static int defaultResolutionX = 1920;
 	public static int defaultResolutionY = 1080;
-	public static int maxResolution = 3840;
 	public static int loadDistance = 32;
 	public static int unloadDistance = 48;
+	public static int maxBrowsers = 16;
 	public static String defaultUrl = "https://www.google.com";
 
 	private static final File configFile = new File("config/jab.properties");
@@ -29,9 +29,9 @@ public class JabConfig {
 			maxScreenSize = parseInt(props, "maxScreenSize", 8);
 			defaultResolutionX = parseInt(props, "defaultResolutionX", 1920);
 			defaultResolutionY = parseInt(props, "defaultResolutionY", 1080);
-			maxResolution = parseInt(props, "maxResolution", 3840);
 			loadDistance = parseInt(props, "loadDistance", 32);
 			unloadDistance = parseInt(props, "unloadDistance", 48);
+			maxBrowsers = Math.max(1, parseInt(props, "maxBrowsers", 16));
 			defaultUrl = props.getProperty("defaultUrl", "https://www.google.com");
 		} catch (Exception e) {
 			JabMod.LOGGER.warn("Failed to load config", e);
@@ -46,9 +46,9 @@ public class JabConfig {
 				props.setProperty("maxScreenSize", String.valueOf(maxScreenSize));
 				props.setProperty("defaultResolutionX", String.valueOf(defaultResolutionX));
 				props.setProperty("defaultResolutionY", String.valueOf(defaultResolutionY));
-				props.setProperty("maxResolution", String.valueOf(maxResolution));
 				props.setProperty("loadDistance", String.valueOf(loadDistance));
 				props.setProperty("unloadDistance", String.valueOf(unloadDistance));
+				props.setProperty("maxBrowsers", String.valueOf(maxBrowsers));
 				props.setProperty("defaultUrl", defaultUrl);
 				props.store(writer, "Just A Browser Mod configuration");
 			}

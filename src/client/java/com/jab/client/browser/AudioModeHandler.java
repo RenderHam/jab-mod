@@ -21,37 +21,58 @@ import java.util.Set;
  * wall, with a 64 block falloff. GLOBAL mode leaves the page volume untouched.
  */
 public class AudioModeHandler {
-	private static final Map<String, Float> lastVolumes = new HashMap<>();
+	private static final Map<Long, Map<BlockSide, AudioState>> dynamicScreens = new HashMap<>();
 	private static int tickCounter = 0;
 
-	private static String key(BlockPos pos, BlockSide side) {
-		return pos.getX() + "," + pos.getY() + "," + pos.getZ() + ":" + side.ordinal();
+	private static final class AudioState {
+		float lastVolume = 1.0f;
+
+		AudioState() {
+		}
 	}
 
 	public static void sync(BlockPos pos, List<ScreenData> screens) {
-		Set<String> activeDynamic = new HashSet<>();
+		long k = pos.asLong();
+		Map<BlockSide, AudioState> bySide = dynamicScreens.computeIfAbsent(k, key -> new HashMap<>());
+		Set<BlockSide> keep = new HashSet<>();
 		for (ScreenData s : screens) {
 			if (s.audioMode == ScreenData.AudioMode.DYNAMIC) {
-				String k = key(pos, s.side);
-				activeDynamic.add(k);
-				lastVolumes.putIfAbsent(k, 1.0f);
+				keep.add(s.side);
+				bySide.putIfAbsent(s.side, new AudioState());
 			}
 		}
-		String prefix = pos.getX() + "," + pos.getY() + "," + pos.getZ() + ":";
-		lastVolumes.keySet().removeIf(k -> k.startsWith(prefix) && !activeDynamic.contains(k));
+		bySide.keySet().retainAll(keep);
+		if (bySide.isEmpty()) dynamicScreens.remove(k);
 	}
 
 	public static void updateScreen(BlockPos pos, ScreenData screen) {
-		String k = key(pos, screen.side);
+		long k = pos.asLong();
 		if (screen.audioMode == ScreenData.AudioMode.DYNAMIC) {
-			lastVolumes.putIfAbsent(k, 1.0f);
+			dynamicScreens.computeIfAbsent(k, key -> new HashMap<>()).put(screen.side, new AudioState());
 		} else {
-			lastVolumes.remove(k);
+			Map<BlockSide, AudioState> byPos = dynamicScreens.get(k);
+			if (byPos != null) {
+				byPos.remove(screen.side);
+				if (byPos.isEmpty()) dynamicScreens.remove(k);
+			}
 		}
 	}
 
+	public static void remove(BlockPos pos, BlockSide side) {
+		long k = pos.asLong();
+		Map<BlockSide, AudioState> byPos = dynamicScreens.get(k);
+		if (byPos != null) {
+			byPos.remove(side);
+			if (byPos.isEmpty()) dynamicScreens.remove(k);
+		}
+	}
+
+	public static void clearAll() {
+		dynamicScreens.clear();
+	}
+
 	public static void tick() {
-		if (lastVolumes.isEmpty()) return;
+		if (dynamicScreens.isEmpty()) return;
 
 		// Re-evaluating volume every tick is wasteful; once every 5 ticks is plenty.
 		tickCounter++;
@@ -60,35 +81,25 @@ public class AudioModeHandler {
 		var mc = Minecraft.getInstance();
 		if (mc.player == null || mc.level == null) return;
 
-		Vec3 playerPos = mc.player.position();
+		Vec3 playerCenter = mc.player.getEyePosition();
 
-		for (var entry : lastVolumes.entrySet()) {
-			String k = entry.getKey();
-			try {
-				String[] parts = k.split(":");
-				String[] posParts = parts[0].split(",");
-				int x = Integer.parseInt(posParts[0]);
-				int y = Integer.parseInt(posParts[1]);
-				int z = Integer.parseInt(posParts[2]);
-				BlockSide side = BlockSide.values()[Integer.parseInt(parts[1])];
-				BlockPos pos = new BlockPos(x, y, z);
-
-				Vec3 center = Vec3.atCenterOf(pos);
-				float dist = (float) playerPos.distanceTo(center);
+		for (var entry : dynamicScreens.entrySet()) {
+			BlockPos pos = BlockPos.of(entry.getKey());
+			Vec3 center = Vec3.atCenterOf(pos);
+			for (var sideEntry : entry.getValue().entrySet()) {
+				AudioState state = sideEntry.getValue();
+				float dist = (float) playerCenter.distanceTo(center);
 				float volume = Math.max(0.0f, Math.min(1.0f, 1.0f - dist / 64.0f));
 				if (volume < 0.01f) volume = 0.0f;
 
-				float lastVol = entry.getValue();
-				if (Math.abs(volume - lastVol) > 0.01f) {
-					RinkuBrowser browser = ScreenBrowserManager.getBrowser(pos, side);
+				if (Math.abs(volume - state.lastVolume) > 0.01f) {
+					RinkuBrowser browser = ScreenBrowserManager.getBrowser(pos, sideEntry.getKey());
 					if (browser != null) {
 						String js = "document.querySelectorAll('video,audio').forEach(function(e){e.volume=" + volume + "})";
 						browser.executeJavaScript(js, "", 0);
-						lastVolumes.put(k, volume);
+						state.lastVolume = volume;
 					}
 				}
-			} catch (Exception e) {
-				lastVolumes.remove(k);
 			}
 		}
 	}

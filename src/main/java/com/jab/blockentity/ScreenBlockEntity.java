@@ -13,8 +13,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
@@ -32,48 +32,42 @@ import java.util.List;
  */
 public class ScreenBlockEntity extends BlockEntity {
 	private final EnumMap<BlockSide, ScreenData> screens = new EnumMap<>(BlockSide.class);
-	private BlockPos origin;
-	private int mbWidth;
-	private int mbHeight;
+	private List<ScreenData> screensSnapshot = List.of();
 
 	public ScreenBlockEntity(BlockPos pos, BlockState state) {
 		super(ModBlockEntities.SCREEN_BLOCK_ENTITY, pos, state);
 	}
 
-	/** Sends the full screen state to every player tracking this block. */
-	public void sync() {
+	private void broadcast(CustomPacketPayload packet) {
 		if (level instanceof ServerLevel sl) {
-			var packet = new ScreenStateS2CPacket(worldPosition, List.copyOf(screens.values()));
 			for (var trackingPlayer : PlayerLookup.tracking(sl, worldPosition)) {
 				ServerPlayNetworking.send(trackingPlayer, packet);
 			}
 		}
+	}
+
+	/** Sends the full screen state to every player tracking this block. */
+	public void sync() {
+		broadcast(new ScreenStateS2CPacket(worldPosition, List.copyOf(screens.values())));
 	}
 
 	/** Sends a targeted update for a single screen instead of the whole wall. */
 	public void syncUpdate(BlockSide side) {
 		ScreenData screen = screens.get(side);
-		if (screen == null) return;
-		if (level instanceof ServerLevel sl) {
-			var packet = new ScreenUpdateS2CPacket(worldPosition, screen);
-			for (var trackingPlayer : PlayerLookup.tracking(sl, worldPosition)) {
-				ServerPlayNetworking.send(trackingPlayer, packet);
-			}
+		if (screen != null) {
+			broadcast(new ScreenUpdateS2CPacket(worldPosition, screen));
 		}
 	}
 
-	public ScreenData addScreen(BlockSide side, int w, int h, Player player) {
+	public ScreenData addScreen(BlockSide side, int w, int h) {
 		ScreenData existing = screens.get(side);
 		if (existing != null) return existing;
 		ScreenData data = new ScreenData();
 		data.side = side;
 		data.width = w;
 		data.height = h;
-		data.owner = player.getUUID();
-		this.origin = worldPosition;
-		this.mbWidth = w;
-		this.mbHeight = h;
 		screens.put(side, data);
+		rebuildScreensSnapshot();
 		setChanged();
 		sync();
 		return data;
@@ -84,7 +78,7 @@ public class ScreenBlockEntity extends BlockEntity {
 	}
 
 	public List<ScreenData> getScreens() {
-		return List.copyOf(screens.values());
+		return screensSnapshot;
 	}
 
 	public void replaceAllScreens(List<ScreenData> list) {
@@ -92,24 +86,13 @@ public class ScreenBlockEntity extends BlockEntity {
 		for (ScreenData s : list) {
 			screens.put(s.side, s);
 		}
+		rebuildScreensSnapshot();
 	}
 
 	public boolean setUrl(BlockSide side, String url) {
 		ScreenData s = screens.get(side);
 		if (s != null) {
 			s.url = url;
-			setChanged();
-			syncUpdate(side);
-			return true;
-		}
-		return false;
-	}
-
-	public boolean setResolution(BlockSide side, int resX, int resY) {
-		ScreenData s = screens.get(side);
-		if (s != null) {
-			s.resX = resX;
-			s.resY = resY;
 			setChanged();
 			syncUpdate(side);
 			return true;
@@ -128,16 +111,17 @@ public class ScreenBlockEntity extends BlockEntity {
 		return false;
 	}
 
-	public void onDestroy(Player player) {
+	public void onDestroy() {
 		screens.clear();
+		rebuildScreensSnapshot();
 		setChanged();
 		sync();
 	}
 
 	@Override
 	public void setRemoved() {
-		if (level instanceof ServerLevel sl && !screens.isEmpty()) {
-			onDestroy(null);
+		if (level instanceof ServerLevel && !screens.isEmpty()) {
+			onDestroy();
 		}
 		super.setRemoved();
 	}
@@ -145,13 +129,6 @@ public class ScreenBlockEntity extends BlockEntity {
 	@Override
 	protected void saveAdditional(ValueOutput output) {
 		super.saveAdditional(output);
-		if (origin != null) {
-			output.putInt("OriginX", origin.getX());
-			output.putInt("OriginY", origin.getY());
-			output.putInt("OriginZ", origin.getZ());
-		}
-		output.putInt("MbWidth", mbWidth);
-		output.putInt("MbHeight", mbHeight);
 		var listOut = output.list("Screens", CompoundTag.CODEC);
 		for (ScreenData s : screens.values()) {
 			listOut.add(s.serialize());
@@ -162,37 +139,27 @@ public class ScreenBlockEntity extends BlockEntity {
 	protected void loadAdditional(ValueInput input) {
 		super.loadAdditional(input);
 		screens.clear();
-		int ox = input.getIntOr("OriginX", 0);
-		int oy = input.getIntOr("OriginY", 0);
-		int oz = input.getIntOr("OriginZ", 0);
-		if (ox != 0 || oy != 0 || oz != 0) {
-			origin = new BlockPos(ox, oy, oz);
-		}
-		mbWidth = input.getIntOr("MbWidth", 0);
-		mbHeight = input.getIntOr("MbHeight", 0);
 		var listIn = input.listOrEmpty("Screens", CompoundTag.CODEC);
 		for (var tag : listIn) {
 			ScreenData sd = ScreenData.deserialize(tag);
 			screens.put(sd.side, sd);
 		}
+		rebuildScreensSnapshot();
 	}
 
 	@Override
 	public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
 		CompoundTag tag = new CompoundTag();
-		if (origin != null) {
-			tag.putInt("OriginX", origin.getX());
-			tag.putInt("OriginY", origin.getY());
-			tag.putInt("OriginZ", origin.getZ());
-		}
-		tag.putInt("MbWidth", mbWidth);
-		tag.putInt("MbHeight", mbHeight);
 		ListTag listTag = new ListTag();
 		for (ScreenData s : screens.values()) {
 			listTag.add(s.serialize());
 		}
 		tag.put("Screens", listTag);
 		return tag;
+	}
+
+	private void rebuildScreensSnapshot() {
+		screensSnapshot = List.copyOf(screens.values());
 	}
 
 	public AABB getRenderBoundingBox() {

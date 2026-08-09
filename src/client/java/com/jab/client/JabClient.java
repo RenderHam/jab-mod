@@ -18,6 +18,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 
 import net.minecraft.client.Minecraft;
@@ -35,6 +36,9 @@ public class JabClient implements ClientModInitializer {
 
 		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> BrowserManager.shutdown());
 
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) ->
+				client.execute(ScreenBrowserManager::onPlayerDisconnect));
+
 		// Recreate browsers when chunks (re)load and drop them when chunks unload.
 		ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
 			for (var be : chunk.getBlockEntities().values()) {
@@ -49,6 +53,7 @@ public class JabClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			AudioModeHandler.tick();
+			ScreenBrowserManager.tick();
 			ScreenBrowserManager.applyPending();
 		});
 
@@ -63,7 +68,7 @@ public class JabClient implements ClientModInitializer {
 					if (scr != null) {
 						ScreenBrowserManager.sync(origin.immutable(), sbe.getScreens());
 						Minecraft.getInstance().setScreen(
-								new BrowserScreen(origin.immutable(), side.ordinal(), scr.url, scr.resX, scr.resY));
+								new BrowserScreen(origin.immutable(), side.ordinal(), scr.url));
 						return InteractionResult.SUCCESS;
 					}
 				}

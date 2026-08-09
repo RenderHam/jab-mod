@@ -95,7 +95,7 @@ public class ScreenBlock extends BaseEntityBlock {
 			if (curState.getValue(HAS_TE)) {
 				BlockEntity be = level.getBlockEntity(cur);
 				if (be instanceof ScreenBlockEntity sbe) {
-					sbe.onDestroy(null);
+					sbe.onDestroy();
 					return;
 				}
 			}

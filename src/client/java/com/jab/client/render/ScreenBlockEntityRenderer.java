@@ -98,7 +98,7 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 
 	@Override
 	public boolean shouldRenderOffScreen() {
-		return true;
+		return false;
 	}
 
 	@Override

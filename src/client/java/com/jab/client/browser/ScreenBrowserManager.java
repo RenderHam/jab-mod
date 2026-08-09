@@ -4,6 +4,8 @@ import de.keksuccino.rinku.RinkuBrowser;
 
 import com.jab.JabMod;
 import com.jab.blockentity.ScreenBlockEntity;
+import com.jab.client.gui.BrowserScreen;
+import com.jab.config.JabConfig;
 import com.jab.data.ScreenData;
 import com.jab.util.BlockSide;
 
@@ -11,89 +13,179 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-
-import org.cef.network.CefCookieManager;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Owns one browser per screen (keyed by origin position + block side) and keeps the
- * client-side screen data in sync with the server. Screen data that arrives before
- * the wall's block entity exists is parked in {@link #pendingScreens} until it shows up.
+ * client-side screen data in sync with the server. Browsers outside the configured
+ * unload distance are destroyed and recreated once the player comes back into load
+ * distance, and the {@link JabConfig#maxBrowsers} cap parks extra screens instead of
+ * creating their browsers. Screen data that arrives before the wall's block entity
+ * exists is parked in {@link #pendingScreens} until it shows up.
  */
 public class ScreenBrowserManager {
-	private static final Map<String, RinkuBrowser> browserMap = new HashMap<>();
-	private static final Map<BlockPos, List<ScreenData>> pendingScreens = new HashMap<>();
+	private static final Map<Long, EnumMap<BlockSide, RinkuBrowser>> browserMap = new HashMap<>();
+	private static final Map<Long, Map<BlockSide, ScreenData>> desiredScreens = new HashMap<>();
+	private static final Map<Long, List<ScreenData>> pendingScreens = new HashMap<>();
+	private static long tickCounter = 0;
+	private static long capWarnTime = 0;
 
-	private static String key(BlockPos pos, BlockSide side) {
-		return pos.getX() + "," + pos.getY() + "," + pos.getZ() + ":" + side.ordinal();
+	private static long key(BlockPos pos) {
+		return pos.asLong();
+	}
+
+	private static void logDestroy(BlockPos pos, BlockSide side, RinkuBrowser browser, String reason) {
+		JabMod.LOGGER.info("Closed browser id={} pos={} side={} url={} reason={}",
+				browser.getIdentifier(), pos, side, browser.getURL(), reason);
+	}
+
+	private static boolean isGuiOpen(BlockPos pos, BlockSide side) {
+		net.minecraft.client.gui.screens.Screen screen = Minecraft.getInstance().screen;
+		return screen instanceof BrowserScreen bs && bs.getPos().equals(pos) && bs.getSideOrdinal() == side.ordinal();
+	}
+
+	private static double distanceSqToPlayer(BlockPos pos) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.player == null || mc.level == null) return Double.MAX_VALUE;
+		return mc.player.distanceToSqr(Vec3.atCenterOf(pos));
+	}
+
+	private static int activeBrowserCount() {
+		int count = 0;
+		for (var m : browserMap.values()) count += m.size();
+		return count;
+	}
+
+	private static void createBrowser(BlockPos pos, BlockSide side, ScreenData s, boolean force) {
+		if (activeBrowserCount() >= JabConfig.maxBrowsers) {
+			if (force) {
+				JabMod.LOGGER.warn("Browser cap reached ({}), but GUI is open — creating anyway", JabConfig.maxBrowsers);
+			} else {
+				long now = System.currentTimeMillis();
+				if (now - capWarnTime > 10_000) {
+					JabMod.LOGGER.warn("Browser cap reached ({}): parking screen at {} side={} until capacity frees up",
+							JabConfig.maxBrowsers, pos, side);
+					capWarnTime = now;
+				}
+				return;
+			}
+		}
+		RinkuBrowser browser = BrowserManager.createBrowser(s.url, false, s.resX, s.resY);
+		if (browser != null) {
+			browserMap.computeIfAbsent(key(pos), k -> new EnumMap<>(BlockSide.class)).put(side, browser);
+		} else {
+			JabMod.LOGGER.warn("Failed to create browser for pos={} side={}", pos, side);
+		}
 	}
 
 	public static void sync(BlockPos pos, List<ScreenData> screens) {
-		Map<String, ScreenData> newScreens = new HashMap<>();
+		Map<BlockSide, ScreenData> newScreens = new EnumMap<>(BlockSide.class);
 		for (ScreenData s : screens) {
-			String k = key(pos, s.side);
-			newScreens.put(k, s);
-			if (!browserMap.containsKey(k)) {
-				RinkuBrowser browser = BrowserManager.createBrowser(s.url, false, s.resX, s.resY);
-				if (browser != null) {
-					browserMap.put(k, browser);
-				} else {
-					JabMod.LOGGER.warn("Failed to create browser for key={}", k);
+			newScreens.put(s.side, s);
+		}
+		desiredScreens.put(key(pos), newScreens);
+
+		var alive = browserMap.get(key(pos));
+		if (alive != null) {
+			var iter = alive.entrySet().iterator();
+			while (iter.hasNext()) {
+				var entry = iter.next();
+				if (!newScreens.containsKey(entry.getKey())) {
+					logDestroy(pos, entry.getKey(), entry.getValue(), "screen-removed");
+					BrowserManager.destroyBrowser(entry.getValue());
+					iter.remove();
 				}
 			}
-		}
-
-		// Drop browsers for screens that no longer exist.
-		var iter = browserMap.entrySet().iterator();
-		while (iter.hasNext()) {
-			var entry = iter.next();
-			if (!newScreens.containsKey(entry.getKey())) {
-				BrowserManager.destroyBrowser(entry.getValue());
-				iter.remove();
-			}
+			if (alive.isEmpty()) browserMap.remove(key(pos));
 		}
 
 		AudioModeHandler.sync(pos, screens);
 	}
 
+	public static void tick() {
+		tickCounter++;
+		if (tickCounter % 5 != 0) return;
+
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.player == null || mc.level == null) return;
+		if (desiredScreens.isEmpty()) return;
+
+		for (var entry : desiredScreens.entrySet()) {
+			BlockPos pos = BlockPos.of(entry.getKey());
+			Map<BlockSide, ScreenData> screens = entry.getValue();
+			Map<BlockSide, RinkuBrowser> alive = browserMap.get(entry.getKey());
+			double d2 = distanceSqToPlayer(pos);
+			boolean withinUnload = d2 <= (double) JabConfig.unloadDistance * JabConfig.unloadDistance;
+			boolean inRange = d2 <= (double) JabConfig.loadDistance * JabConfig.loadDistance;
+			for (var sEntry : screens.entrySet()) {
+				BlockSide side = sEntry.getKey();
+				ScreenData screen = sEntry.getValue();
+				boolean guiOpen = isGuiOpen(pos, side);
+
+				RinkuBrowser browser = alive != null ? alive.get(side) : null;
+				if (browser != null) {
+					if (!guiOpen && !withinUnload) {
+						logDestroy(pos, side, browser, "distance-unload");
+						BrowserManager.destroyBrowser(browser);
+						alive.remove(side);
+						AudioModeHandler.remove(pos, side);
+						if (alive.isEmpty()) browserMap.remove(entry.getKey());
+					}
+				} else if (guiOpen || inRange) {
+					createBrowser(pos, side, screen, guiOpen);
+				}
+			}
+		}
+
+		desiredScreens.entrySet().removeIf(e -> e.getValue().isEmpty());
+	}
+
 	public static RinkuBrowser getBrowser(BlockPos pos, BlockSide side) {
-		return browserMap.get(key(pos, side));
+		Map<BlockSide, RinkuBrowser> alive = browserMap.get(key(pos));
+		return alive != null ? alive.get(side) : null;
+	}
+
+	/** Forces a browser to exist for a screen (used when the GUI opens). */
+	public static void ensureBrowser(BlockPos pos, BlockSide side) {
+		if (getBrowser(pos, side) != null) return;
+		Map<BlockSide, ScreenData> desired = desiredScreens.get(key(pos));
+		if (desired == null) return;
+		ScreenData s = desired.get(side);
+		if (s == null) return;
+		createBrowser(pos, side, s, true);
 	}
 
 	public static void updateScreen(BlockPos pos, ScreenData screen) {
-		String k = key(pos, screen.side);
-		RinkuBrowser browser = browserMap.get(k);
+		desiredScreens.computeIfAbsent(key(pos), k -> new EnumMap<>(BlockSide.class)).put(screen.side, screen);
+
+		RinkuBrowser browser = getBrowser(pos, screen.side);
 		if (browser != null) {
-			// Only reload when the URL actually changed so resizing or audio toggles
-			// don't interrupt the page.
+			// Only reload when the URL actually changed so audio toggles don't interrupt the page.
 			String current = browser.getURL();
 			if (current == null || !current.equals(screen.url)) {
 				browser.loadURL(screen.url);
-			}
-		} else {
-			browser = BrowserManager.createBrowser(screen.url, false, screen.resX, screen.resY);
-			if (browser != null) {
-				browserMap.put(k, browser);
 			}
 		}
 		AudioModeHandler.updateScreen(pos, screen);
 	}
 
 	public static void storePending(BlockPos pos, List<ScreenData> screens) {
-		pendingScreens.put(pos.immutable(), screens);
+		pendingScreens.put(key(pos), screens);
 	}
 
 	/** Applies an update to the parked data (or parks it if nothing is parked yet). */
 	public static void applyUpdate(BlockPos pos, ScreenData update) {
-		BlockPos key = pos.immutable();
-		List<ScreenData> list = pendingScreens.get(key);
+		long k = key(pos);
+		List<ScreenData> list = pendingScreens.get(k);
 		if (list == null) {
 			list = new ArrayList<>();
-			pendingScreens.put(key, list);
+			pendingScreens.put(k, list);
 		}
 		for (ScreenData s : list) {
 			if (s.side == update.side) {
@@ -101,7 +193,6 @@ public class ScreenBrowserManager {
 				s.resX = update.resX;
 				s.resY = update.resY;
 				s.audioMode = update.audioMode;
-				s.active = update.active;
 				return;
 			}
 		}
@@ -116,7 +207,7 @@ public class ScreenBrowserManager {
 		var iter = pendingScreens.entrySet().iterator();
 		while (iter.hasNext()) {
 			var entry = iter.next();
-			if (world.getBlockEntity(entry.getKey()) instanceof ScreenBlockEntity sbe) {
+			if (world.getBlockEntity(BlockPos.of(entry.getKey())) instanceof ScreenBlockEntity sbe) {
 				sbe.replaceAllScreens(entry.getValue());
 				iter.remove();
 			}
@@ -126,41 +217,52 @@ public class ScreenBrowserManager {
 	public static void removeAllInChunk(ChunkPos chunkPos) {
 		int cx = chunkPos.getMinBlockX();
 		int cz = chunkPos.getMinBlockZ();
-		boolean removed = false;
-		var iter = browserMap.entrySet().iterator();
-		while (iter.hasNext()) {
-			var entry = iter.next();
-			String[] parts = entry.getKey().split("[:,]");
-			try {
-				int bx = Integer.parseInt(parts[0]);
-				int bz = Integer.parseInt(parts[2]);
-				if (bx >= cx && bx < cx + 16 && bz >= cz && bz < cz + 16) {
-					BrowserManager.destroyBrowser(entry.getValue());
-					iter.remove();
-					removed = true;
+		List<Long> removeDesired = new ArrayList<>();
+		for (var entry : desiredScreens.entrySet()) {
+			BlockPos pos = BlockPos.of(entry.getKey());
+			if (pos.getX() < cx || pos.getX() >= cx + 16 || pos.getZ() < cz || pos.getZ() >= cz + 16) continue;
+			Map<BlockSide, RinkuBrowser> alive = browserMap.remove(entry.getKey());
+			if (alive != null) {
+				for (var bEntry : alive.entrySet()) {
+					logDestroy(pos, bEntry.getKey(), bEntry.getValue(), "chunk-unload");
+					BrowserManager.destroyBrowser(bEntry.getValue());
+					AudioModeHandler.remove(pos, bEntry.getKey());
+					entry.getValue().remove(bEntry.getKey());
 				}
-			} catch (NumberFormatException ignored) {
 			}
+			pendingScreens.remove(entry.getKey());
+			removeDesired.add(entry.getKey());
 		}
-		if (removed) {
-			try {
-				CefCookieManager.getGlobalManager().deleteCookies("", "");
-			} catch (Exception e) {
-				JabMod.LOGGER.warn("Failed to delete cookies on chunk unload", e);
-			}
+		for (Long k : removeDesired) {
+			desiredScreens.remove(k);
 		}
 	}
 
-	public static void cleanup() {
-		for (var browser : browserMap.values()) {
-			BrowserManager.destroyBrowser(browser);
+	/** Called when the player disconnects; wipes every browser and parked data. */
+	public static void onPlayerDisconnect() {
+		int count = activeBrowserCount();
+		destroyAll("player-quit");
+		JabMod.LOGGER.info("Player quit: destroyed {} browser(s), wiping browsing data", count);
+	}
+
+	/** Called during shutdown; destroys every browser and logs the total. */
+	public static void onShutdownCleanup() {
+		int count = activeBrowserCount();
+		destroyAll("shutdown");
+		JabMod.LOGGER.info("Shutdown: destroyed {} browser(s)", count);
+	}
+
+	private static void destroyAll(String reason) {
+		for (var entry : browserMap.entrySet()) {
+			BlockPos pos = BlockPos.of(entry.getKey());
+			for (var bEntry : entry.getValue().entrySet()) {
+				logDestroy(pos, bEntry.getKey(), bEntry.getValue(), reason);
+				BrowserManager.destroyBrowser(bEntry.getValue());
+			}
 		}
 		browserMap.clear();
+		desiredScreens.clear();
 		pendingScreens.clear();
-		try {
-			CefCookieManager.getGlobalManager().deleteCookies("", "");
-		} catch (Exception e) {
-			JabMod.LOGGER.warn("Failed to delete cookies on cleanup", e);
-		}
+		AudioModeHandler.clearAll();
 	}
 }

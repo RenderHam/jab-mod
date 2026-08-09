@@ -3,10 +3,7 @@ package com.jab.data;
 import com.jab.config.JabConfig;
 import com.jab.util.BlockSide;
 
-import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
-
-import java.util.UUID;
 
 public class ScreenData {
 	public enum AudioMode {
@@ -20,8 +17,6 @@ public class ScreenData {
 	public int resX;
 	public int resY;
 	public String url;
-	public UUID owner;
-	public boolean active;
 	public AudioMode audioMode = AudioMode.GLOBAL;
 
 	public ScreenData() {
@@ -39,9 +34,6 @@ public class ScreenData {
 		tag.putInt("ResY", resY);
 		tag.putString("Url", url);
 		tag.putString("AudioMode", audioMode.name());
-		if (owner != null) {
-			tag.putIntArray("Owner", UUIDUtil.uuidToIntArray(owner));
-		}
 		return tag;
 	}
 
@@ -58,9 +50,6 @@ public class ScreenData {
 			data.audioMode = AudioMode.valueOf(am);
 		} catch (IllegalArgumentException e) {
 			data.audioMode = AudioMode.GLOBAL;
-		}
-		if (tag.contains("Owner")) {
-			data.owner = UUIDUtil.uuidFromIntArray(tag.getIntArray("Owner").orElse(new int[0]));
 		}
 		return data;
 	}

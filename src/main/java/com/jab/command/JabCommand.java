@@ -9,7 +9,6 @@ import com.jab.util.BlockSide;
 import com.jab.util.Multiblock;
 
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -36,10 +35,6 @@ public class JabCommand {
 				.then(Commands.literal("url")
 						.then(Commands.argument("url", StringArgumentType.greedyString())
 								.executes(JabCommand::setUrl)))
-				.then(Commands.literal("resolution")
-						.then(Commands.argument("width", IntegerArgumentType.integer(1, 3840))
-								.then(Commands.argument("height", IntegerArgumentType.integer(1, 2160))
-										.executes(JabCommand::setResolution))))
 				.then(Commands.literal("audio")
 						.then(Commands.literal("global")
 								.executes(ctx -> setAudioMode(ctx, ScreenData.AudioMode.GLOBAL)))
@@ -59,27 +54,15 @@ public class JabCommand {
 		var player = source.getPlayerOrException();
 		var world = player.level();
 
-		var hit = player.pick(20.0, 1.0f, false);
-		if (hit.getType() != HitResult.Type.BLOCK) {
+		var look = lookAtScreenBlock(player, world);
+		if (look == null) {
 			source.sendFailure(Component.literal("You must be looking at a screen block wall"));
 			return 0;
 		}
 
-		BlockHitResult bhr = (BlockHitResult) hit;
-		BlockSide side = BlockSide.fromDirection(bhr.getDirection());
-		BlockPos pos = bhr.getBlockPos();
-
-		if (world.getBlockState(pos).getBlock() != ModBlocks.SCREEN_BLOCK) {
-			source.sendFailure(Component.literal("You must look at a screen block"));
-			return 0;
-		}
-
-		BlockPos.MutableBlockPos origin = pos.mutable();
-		Multiblock.findOrigin(world, origin, side);
-		BlockPos originPos = origin.immutable();
-
-		int[] size = Multiblock.measure(world, originPos, side);
-		if (size[0] < 2 && size[1] < 2) {
+		BlockPos originPos = look.origin;
+		int[] size = Multiblock.measure(world, originPos, look.side);
+		if (size[0] < 2 || size[1] < 2) {
 			source.sendFailure(Component.literal("Screen must be at least 2x2 blocks"));
 			return 0;
 		}
@@ -88,33 +71,36 @@ public class JabCommand {
 			return 0;
 		}
 
-		BlockPos err = Multiblock.check(world, originPos, size[0], size[1], side);
+		BlockPos err = Multiblock.check(world, originPos, size[0], size[1], look.side);
 		if (err != null) {
 			source.sendFailure(Component.literal("Screen wall has a missing block at " + err.toShortString()));
 			return 0;
 		}
 
 		if (world.getBlockEntity(originPos) instanceof ScreenBlockEntity sbe) {
-			if (sbe.getScreen(side) != null) {
+			if (sbe.getScreen(look.side) != null) {
 				source.sendFailure(Component.literal("A display already exists on this face"));
 				return 0;
 			}
-			sbe.addScreen(side, size[0], size[1], player);
-			if (url != null) sbe.setUrl(side, url);
+			addDisplay(sbe, look.side, size, url);
 			source.sendSuccess(() -> Component.literal("Created display (" + size[0] + "x" + size[1] + ")"), true);
 			return 1;
 		}
 
 		world.setBlock(originPos, world.getBlockState(originPos).setValue(ScreenBlock.HAS_TE, true), 3);
 		if (world.getBlockEntity(originPos) instanceof ScreenBlockEntity sbe) {
-			sbe.addScreen(side, size[0], size[1], player);
-			if (url != null) sbe.setUrl(side, url);
+			addDisplay(sbe, look.side, size, url);
 			source.sendSuccess(() -> Component.literal("Created display (" + size[0] + "x" + size[1] + ")"), true);
 			return 1;
 		}
 
 		source.sendFailure(Component.literal("Failed to create display"));
 		return 0;
+	}
+
+	private static void addDisplay(ScreenBlockEntity sbe, BlockSide side, int[] size, String url) {
+		sbe.addScreen(side, size[0], size[1]);
+		if (url != null) sbe.setUrl(side, url);
 	}
 
 	private static int remove(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
@@ -125,8 +111,7 @@ public class JabCommand {
 		var result = findScreenBE(player, world);
 		if (result == null) return 0;
 
-		result.be().onDestroy(null);
-		result.be().sync();
+		result.be().onDestroy();
 		source.sendSuccess(() -> Component.literal("Display removed"), true);
 
 		return 1;
@@ -143,24 +128,6 @@ public class JabCommand {
 
 		if (result.be().setUrl(result.side(), url)) {
 			source.sendSuccess(() -> Component.literal("URL set to " + url), true);
-			return 1;
-		}
-		source.sendFailure(Component.literal("No display on this face"));
-		return 0;
-	}
-
-	private static int setResolution(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-		var source = ctx.getSource();
-		var player = source.getPlayerOrException();
-		var world = player.level();
-		int w = IntegerArgumentType.getInteger(ctx, "width");
-		int h = IntegerArgumentType.getInteger(ctx, "height");
-
-		var result = findScreenBE(player, world);
-		if (result == null) return 0;
-
-		if (result.be().setResolution(result.side(), w, h)) {
-			source.sendSuccess(() -> Component.literal("Resolution set to " + w + "x" + h), true);
 			return 1;
 		}
 		source.sendFailure(Component.literal("No display on this face"));
@@ -210,6 +177,26 @@ public class JabCommand {
 		}
 
 		return new Pair(sbe, side);
+	}
+
+	/**
+	 * Resolves the wall the player is looking at to its origin block and relevant face.
+	 * Returns null when the player is not looking at a screen block.
+	 */
+	private static WallLook lookAtScreenBlock(ServerPlayer player, Level world) {
+		var hit = player.pick(20.0, 1.0f, false);
+		if (hit.getType() != HitResult.Type.BLOCK) return null;
+
+		BlockHitResult bhr = (BlockHitResult) hit;
+		BlockSide side = BlockSide.fromDirection(bhr.getDirection());
+		BlockPos pos = bhr.getBlockPos();
+
+		if (world.getBlockState(pos).getBlock() != ModBlocks.SCREEN_BLOCK) return null;
+
+		BlockPos.MutableBlockPos origin = pos.mutable();
+		Multiblock.findOrigin(world, origin, side);
+
+		return new WallLook(origin.immutable(), side);
 	}
 
 	private static int debug(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
@@ -266,7 +253,6 @@ public class JabCommand {
 						+ " §7w=" + sd.width + " h=" + sd.height
 						+ " §7url=§f" + sd.url
 						+ " §7res=§f" + sd.resX + "x" + sd.resY
-						+ " §7active=§f" + sd.active
 						+ " §7audio=§f" + sd.audioMode.name().toLowerCase() + "]"), false);
 			}
 		} else {
@@ -278,4 +264,6 @@ public class JabCommand {
 	}
 
 	private record Pair(ScreenBlockEntity be, BlockSide side) {}
+
+	private record WallLook(BlockPos origin, BlockSide side) {}
 }
