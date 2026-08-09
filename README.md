@@ -19,6 +19,12 @@ backed by an embedded Chromium instance (via [Rinku](https://github.com/Keksucci
   _dynamic_ (page volume is driven by your distance from the wall, with a 64-block falloff).
 - **Per-face displays** — one wall can show a different page on each of its six faces.
 
+## Screenshots
+
+![JAB in-game](docs/screenshots/sc1.png)
+
+![JAB in-game 2](docs/screenshots/sc2.png)
+
 ## Requirements
 
 - Minecraft **1.21.11** (Fabric)
