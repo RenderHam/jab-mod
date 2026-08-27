@@ -42,7 +42,7 @@ maintained by the project author.
 
 ## Usage
 
-1. Craft screen blocks (1 iron ingot + 1 redstone, shapeless) and build a flat wall.
+1. Craft screen blocks (4 iron nuggets + 1 redstone dust, shaped) and build a flat wall.
 2. Look at the wall and run:
 
 ```
