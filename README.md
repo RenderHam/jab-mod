@@ -29,10 +29,7 @@ backed by an embedded Chromium instance (via [Rinku](https://github.com/Keksucci
 
 - Minecraft **1.21.11** (Fabric)
 - [Fabric API](https://modrinth.com/mod/fabric-api)
-- [Rinku](https://github.com/Keksuccino/Rinku) (rinku-fabric, `3.0.1-1.21.11`)
-
-> Use the **patched Rinku jar from the release** — the published 3.0.1 jar crashes at
-> startup (missing mixin refmap entry; upstream [Keksuccino/Rinku#11](https://github.com/Keksuccino/Rinku/issues/11)).
+- [Rinku](https://github.com/Keksuccino/Rinku) (rinku-fabric, `3.0.4-1.21.11`)
 
 > On first launch Rinku downloads its Chromium native binaries — this may take a few minutes.
 
