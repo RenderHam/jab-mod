@@ -6,6 +6,13 @@
 screen blocks, point at it and run a command, and the wall turns into a live browser panel
 backed by an embedded Chromium instance (via [Rinku](https://github.com/Keksuccino/Rinku)).
 
+## Development
+
+Just A Browser Mod is developed with significant AI assistance. The majority of the
+codebase was generated through AI-assisted development workflows, with human oversight
+for code review, verification, and build processes. All code is reviewed, tested, and
+maintained by the project author.
+
 ## Features
 
 - **Multiblock screen walls** — any rectangle of screen blocks (2x2 or larger) becomes a
