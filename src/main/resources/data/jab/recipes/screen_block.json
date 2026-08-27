@@ -1,11 +1,16 @@
 {
-	"type": "minecraft:crafting_shapeless",
-	"ingredients": [
-		{ "item": "minecraft:iron_ingot" },
-		{ "item": "minecraft:redstone" }
+	"type": "minecraft:crafting_shaped",
+	"pattern": [
+		"N N",
+		" R ",
+		"N N"
 	],
+	"key": {
+		"N": { "item": "minecraft:iron_nugget" },
+		"R": { "item": "minecraft:redstone" }
+	},
 	"result": {
 		"id": "jab:screen_block",
-		"count": 1
+		"count": 4
 	}
 }

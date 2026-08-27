@@ -13,8 +13,7 @@ import net.minecraft.world.level.material.PushReaction;
 
 public class ModBlocks {
 	public static final Block SCREEN_BLOCK = new ScreenBlock(BlockBehaviour.Properties.of()
-			.strength(1.8f)
-			.requiresCorrectToolForDrops()
+			.strength(1.5f, 6.0f)
 			.pushReaction(PushReaction.IGNORE)
 			.noOcclusion()
 			.setId(ResourceKey.create(BuiltInRegistries.BLOCK.key(),
