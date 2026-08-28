@@ -33,6 +33,7 @@ import java.util.List;
 public class ScreenBlockEntity extends BlockEntity {
 	private final EnumMap<BlockSide, ScreenData> screens = new EnumMap<>(BlockSide.class);
 	private List<ScreenData> screensSnapshot = List.of();
+	private boolean removed = false;
 
 	public ScreenBlockEntity(BlockPos pos, BlockState state) {
 		super(ModBlockEntities.SCREEN_BLOCK_ENTITY, pos, state);
@@ -111,15 +112,26 @@ public class ScreenBlockEntity extends BlockEntity {
 		return false;
 	}
 
+	public boolean removeScreen(BlockSide side) {
+		if (screens.remove(side) != null) {
+			rebuildScreensSnapshot();
+			setChanged();
+			sync();
+			return true;
+		}
+		return false;
+	}
+
 	public void onDestroy() {
 		screens.clear();
 		rebuildScreensSnapshot();
 		setChanged();
-		sync();
+		if (!removed) sync();
 	}
 
 	@Override
 	public void setRemoved() {
+		removed = true;
 		if (level instanceof ServerLevel && !screens.isEmpty()) {
 			onDestroy();
 		}

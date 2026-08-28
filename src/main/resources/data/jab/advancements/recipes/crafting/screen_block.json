@@ -1,0 +1,19 @@
+{
+	"criteria": {
+		"has_screen_block": {
+			"trigger": "minecraft:inventory_changed",
+			"conditions": {
+				"items": [
+					{
+						"id": "jab:screen_block"
+					}
+				]
+			}
+		}
+	},
+	"rewards": {
+		"recipes": [
+			"jab:screen_block"
+		]
+	}
+}

@@ -51,7 +51,11 @@ public class BrowserManager {
 	public static void destroyBrowser(RinkuBrowser browser) {
 		if (browser == null) return;
 		browsers.remove(browser.getIdentifier());
-		browser.close();
+		try {
+			browser.close();
+		} catch (Exception e) {
+			JabMod.LOGGER.warn("Failed to close browser id={}", browser.getIdentifier(), e);
+		}
 		wipeBrowsingData();
 		resetCursor();
 	}
@@ -79,7 +83,7 @@ public class BrowserManager {
 	public static void resetCursor() {
 		try {
 			long win = Minecraft.getInstance().getWindow().handle();
-			if (win != 0) {
+			if (win != 0 && !GLFW.glfwWindowShouldClose(win)) {
 				boolean guiOpen = Minecraft.getInstance().screen != null;
 				int mode = guiOpen ? GLFW.GLFW_CURSOR_NORMAL : GLFW.GLFW_CURSOR_DISABLED;
 				GLFW.glfwSetInputMode(win, GLFW.GLFW_CURSOR, mode);

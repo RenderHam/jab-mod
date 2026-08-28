@@ -6,6 +6,7 @@ import com.jab.JabMod;
 import com.jab.client.browser.BrowserManager;
 import com.jab.client.browser.ScreenBrowserManager;
 import com.jab.client.network.ClientNetworking;
+import com.jab.data.ScreenData;
 import com.jab.util.BlockSide;
 
 import net.minecraft.client.Minecraft;
@@ -70,6 +71,11 @@ public class BrowserScreen extends Screen {
 	@Override
 	public void tick() {
 		super.tick();
+		ScreenData sd = ScreenBrowserManager.getDesiredScreen(pos, BlockSide.values()[sideOrd]);
+		if (sd == null) {
+			if (minecraft != null) minecraft.setScreen(null);
+			return;
+		}
 		if (browser == null || !browser.isTextureReady()) {
 			fetchRetryTick++;
 			if (fetchRetryTick % 20 == 1) fetchBrowser();
@@ -155,17 +161,21 @@ public class BrowserScreen extends Screen {
 			drawLoadingText(guiGraphics);
 			return;
 		}
-		if (!browser.isTextureReady()) {
+		try {
+			if (!browser.isTextureReady()) {
+				drawLoadingText(guiGraphics);
+				return;
+			}
+			Identifier texId = browser.getTextureIdentifier();
+			if (texId == null) {
+				drawLoadingText(guiGraphics);
+				return;
+			}
+			guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texId, displayX, displayY, 0f, 0f, displayW, displayH, displayW, displayH);
+		} catch (Exception e) {
+			browser = null;
 			drawLoadingText(guiGraphics);
-			return;
 		}
-		Identifier texId = browser.getTextureIdentifier();
-		if (texId == null) {
-			drawLoadingText(guiGraphics);
-			return;
-		}
-
-		guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texId, displayX, displayY, 0f, 0f, displayW, displayH, displayW, displayH);
 	}
 
 	private void drawLoadingText(GuiGraphics guiGraphics) {
@@ -242,8 +252,10 @@ public class BrowserScreen extends Screen {
 		}
 
 		if (event.modifiers() == GLFW.GLFW_MOD_CONTROL && event.key() == GLFW.GLFW_KEY_L) {
-			urlBox.setFocused(true);
-			urlBox.setCursorPosition(urlBox.getValue().length());
+			if (urlBox != null) {
+				urlBox.setFocused(true);
+				urlBox.setCursorPosition(urlBox.getValue().length());
+			}
 			return true;
 		}
 

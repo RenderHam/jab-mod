@@ -1,6 +1,7 @@
 package com.jab.block;
 
 import com.jab.blockentity.ScreenBlockEntity;
+import com.jab.config.JabConfig;
 import com.jab.registry.ModBlocks;
 
 import com.mojang.serialization.MapCodec;
@@ -85,11 +86,12 @@ public class ScreenBlock extends BaseEntityBlock {
 	private static void destroyOriginForWallContaining(Level level, BlockPos brokenPos) {
 		Set<BlockPos> visited = new HashSet<>();
 		Queue<BlockPos> queue = new LinkedList<>();
+		int maxArea = JabConfig.maxScreenSize * JabConfig.maxScreenSize;
 		queue.add(brokenPos);
 		while (!queue.isEmpty()) {
 			BlockPos cur = queue.poll();
 			if (!visited.add(cur)) continue;
-			if (visited.size() > 200) break;
+			if (visited.size() > maxArea) break;
 			BlockState curState = level.getBlockState(cur);
 			if (!curState.is(ModBlocks.SCREEN_BLOCK)) continue;
 			if (curState.getValue(HAS_TE)) {

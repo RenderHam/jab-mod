@@ -1,12 +1,14 @@
 package com.jab.util;
 
+import com.jab.config.JabConfig;
 import com.jab.registry.ModBlocks;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 
 public class Multiblock {
-	private static final int MAX_ORIGIN_STEPS = 256;
+	private static final int MAX_ORIGIN_STEPS = 32;
+	private static final int MAX_MEASURE_STEPS = 64;
 
 	/**
 	 * Walks the wall backwards along the -r and -u vectors until it finds the origin block.
@@ -38,12 +40,12 @@ public class Multiblock {
 		do {
 			bp.move(side.ux, side.uy, side.uz);
 			height++;
-		} while (world.getBlockState(bp).getBlock() == ModBlocks.SCREEN_BLOCK);
+		} while (height < MAX_MEASURE_STEPS && world.getBlockState(bp).getBlock() == ModBlocks.SCREEN_BLOCK);
 		bp.set(origin);
 		do {
 			bp.move(side.rx, side.ry, side.rz);
 			width++;
-		} while (world.getBlockState(bp).getBlock() == ModBlocks.SCREEN_BLOCK);
+		} while (width < MAX_MEASURE_STEPS && world.getBlockState(bp).getBlock() == ModBlocks.SCREEN_BLOCK);
 		return new int[]{width, height};
 	}
 

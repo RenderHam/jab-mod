@@ -1,13 +1,14 @@
 {
 	"type": "minecraft:crafting_shaped",
+	"category": "misc",
 	"pattern": [
 		"N N",
 		" R ",
 		"N N"
 	],
 	"key": {
-		"N": { "item": "minecraft:iron_nugget" },
-		"R": { "item": "minecraft:redstone" }
+		"N": "minecraft:iron_nugget",
+		"R": "minecraft:redstone"
 	},
 	"result": {
 		"id": "jab:screen_block",

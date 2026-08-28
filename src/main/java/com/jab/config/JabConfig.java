@@ -26,13 +26,14 @@ public class JabConfig {
 		try (FileReader reader = new FileReader(configFile)) {
 			Properties props = new Properties();
 			props.load(reader);
-			maxScreenSize = parseInt(props, "maxScreenSize", 8);
-			defaultResolutionX = parseInt(props, "defaultResolutionX", 1920);
-			defaultResolutionY = parseInt(props, "defaultResolutionY", 1080);
-			loadDistance = parseInt(props, "loadDistance", 32);
-			unloadDistance = parseInt(props, "unloadDistance", 48);
+			maxScreenSize = Math.max(2, parseInt(props, "maxScreenSize", 8));
+			defaultResolutionX = Math.max(1, parseInt(props, "defaultResolutionX", 1920));
+			defaultResolutionY = Math.max(1, parseInt(props, "defaultResolutionY", 1080));
+			loadDistance = Math.max(4, parseInt(props, "loadDistance", 32));
+			unloadDistance = Math.max(loadDistance, parseInt(props, "unloadDistance", 48));
 			maxBrowsers = Math.max(1, parseInt(props, "maxBrowsers", 16));
-			defaultUrl = props.getProperty("defaultUrl", "https://www.google.com");
+			String url = props.getProperty("defaultUrl", "https://www.google.com");
+			defaultUrl = (url == null || url.isBlank()) ? "https://www.google.com" : url.trim();
 		} catch (Exception e) {
 			JabMod.LOGGER.warn("Failed to load config", e);
 		}

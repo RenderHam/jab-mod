@@ -29,7 +29,7 @@ public record ScreenActionC2SPacket(BlockPos pos, BlockSide side, String url) im
 			ByteBufCodecs.STRING_UTF8, ScreenActionC2SPacket::url,
 			(pos, side, url) -> new ScreenActionC2SPacket(
 					pos,
-					BlockSide.values()[Math.min(side, BlockSide.values().length - 1)],
+					BlockSide.values()[Math.clamp(side, 0, BlockSide.values().length - 1)],
 					url)
 	);
 

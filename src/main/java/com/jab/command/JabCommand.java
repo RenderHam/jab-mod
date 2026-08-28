@@ -111,10 +111,12 @@ public class JabCommand {
 		var result = findScreenBE(player, world);
 		if (result == null) return 0;
 
-		result.be().onDestroy();
-		source.sendSuccess(() -> Component.literal("Display removed"), true);
-
-		return 1;
+		if (result.be().removeScreen(result.side())) {
+			source.sendSuccess(() -> Component.literal("Display removed on " + result.side()), true);
+			return 1;
+		}
+		source.sendFailure(Component.literal("No display on this face"));
+		return 0;
 	}
 
 	private static int setUrl(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
@@ -122,6 +124,11 @@ public class JabCommand {
 		var player = source.getPlayerOrException();
 		var world = player.level();
 		String url = StringArgumentType.getString(ctx, "url");
+
+		if (url.length() > 2048) {
+			source.sendFailure(Component.literal("URL too long (max 2048 characters)"));
+			return 0;
+		}
 
 		var result = findScreenBE(player, world);
 		if (result == null) return 0;

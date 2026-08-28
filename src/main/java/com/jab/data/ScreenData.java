@@ -11,7 +11,7 @@ public class ScreenData {
 		DYNAMIC
 	}
 
-	public BlockSide side;
+	public BlockSide side = BlockSide.BOTTOM;
 	public int width;
 	public int height;
 	public int resX;
@@ -39,11 +39,12 @@ public class ScreenData {
 
 	public static ScreenData deserialize(CompoundTag tag) {
 		ScreenData data = new ScreenData();
-		data.side = BlockSide.values()[tag.getByteOr("Side", (byte) 0)];
+		int sideOrd = tag.getByteOr("Side", (byte) 0);
+		data.side = BlockSide.values()[Math.clamp(sideOrd, 0, BlockSide.values().length - 1)];
 		data.width = tag.getIntOr("Width", 0);
 		data.height = tag.getIntOr("Height", 0);
-		data.resX = tag.getIntOr("ResX", 0);
-		data.resY = tag.getIntOr("ResY", 0);
+		data.resX = Math.max(1, tag.getIntOr("ResX", JabConfig.defaultResolutionX));
+		data.resY = Math.max(1, tag.getIntOr("ResY", JabConfig.defaultResolutionY));
 		data.url = tag.getStringOr("Url", "");
 		String am = tag.getStringOr("AudioMode", "GLOBAL");
 		try {

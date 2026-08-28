@@ -17,16 +17,16 @@ public class ScreenDataStream {
 			ByteBufCodecs.VAR_INT, d -> d.resY,
 			ByteBufCodecs.STRING_UTF8, d -> d.url,
 			ByteBufCodecs.VAR_INT, d -> d.audioMode.ordinal(),
-			(side, w, h, rx, ry, url, am) -> {
-				ScreenData d = new ScreenData();
-				d.side = BlockSide.values()[side];
-				d.width = w;
-				d.height = h;
-				d.resX = rx;
-				d.resY = ry;
-				d.url = url;
-				d.audioMode = ScreenData.AudioMode.values()[am];
-				return d;
-			}
+		(side, w, h, rx, ry, url, am) -> {
+			ScreenData d = new ScreenData();
+			d.side = BlockSide.values()[Math.clamp(side, 0, BlockSide.values().length - 1)];
+			d.width = w;
+			d.height = h;
+			d.resX = rx;
+			d.resY = ry;
+			d.url = url;
+			d.audioMode = ScreenData.AudioMode.values()[Math.clamp(am, 0, ScreenData.AudioMode.values().length - 1)];
+			return d;
+		}
 	);
 }

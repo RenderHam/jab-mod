@@ -151,6 +151,11 @@ public class ScreenBrowserManager {
 		return alive != null ? alive.get(side) : null;
 	}
 
+	public static ScreenData getDesiredScreen(BlockPos pos, BlockSide side) {
+		Map<BlockSide, ScreenData> desired = desiredScreens.get(key(pos));
+		return desired != null ? desired.get(side) : null;
+	}
+
 	/** Forces a browser to exist for a screen (used when the GUI opens). */
 	public static void ensureBrowser(BlockPos pos, BlockSide side) {
 		if (getBrowser(pos, side) != null) return;
@@ -256,13 +261,19 @@ public class ScreenBrowserManager {
 		for (var entry : browserMap.entrySet()) {
 			BlockPos pos = BlockPos.of(entry.getKey());
 			for (var bEntry : entry.getValue().entrySet()) {
-				logDestroy(pos, bEntry.getKey(), bEntry.getValue(), reason);
-				BrowserManager.destroyBrowser(bEntry.getValue());
+				try {
+					logDestroy(pos, bEntry.getKey(), bEntry.getValue(), reason);
+					BrowserManager.destroyBrowser(bEntry.getValue());
+				} catch (Exception e) {
+					JabMod.LOGGER.warn("Failed to destroy browser at {} side={}: {}", pos, bEntry.getKey(), e.getMessage());
+				}
 			}
 		}
 		browserMap.clear();
 		desiredScreens.clear();
 		pendingScreens.clear();
 		AudioModeHandler.clearAll();
+		BrowserManager.wipeBrowsingData();
+		BrowserManager.resetCursor();
 	}
 }
