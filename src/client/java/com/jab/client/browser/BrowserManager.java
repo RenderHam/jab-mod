@@ -25,6 +25,7 @@ public class BrowserManager {
 		if (initialized) return;
 		Rinku.scheduleForInit(success -> {
 			if (success) {
+				Rinku.getSettings().setBrowserPreloadEnabled(false);
 				initialized = true;
 				JabMod.LOGGER.info("Rinku initialized");
 			} else {

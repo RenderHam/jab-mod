@@ -1,48 +1,67 @@
 # Just A Browser Mod
 
-# !! WARNING THIS PROJECT IS STILL EXPERIMENTAL !!
+> **This project is experimental and still in active development.**
 
-**Just A Browser Mod** (JAB) adds fully functional web screens to Minecraft. Build a wall of
-screen blocks, point at it and run a command, and the wall turns into a live browser panel
-backed by an embedded Chromium instance (via [Rinku](https://github.com/Keksuccino/Rinku)).
+**Just A Browser Mod** (JAB) adds live web screens to Minecraft. Build a wall of screen
+blocks, run a command, and the wall becomes a real browser panel powered by an embedded
+Chromium instance ([Rinku](https://github.com/Keksuccino/Rinku)).
 
-## Development
+## How It Works
 
-Just A Browser Mod is developed with significant AI assistance. The majority of the
-codebase was generated through AI-assisted development workflows, with human oversight
-for code review, verification, and build processes. All code is reviewed, tested, and
-maintained by the project author.
+**Server** stores screen data (URL, resolution, audio mode) in a `ScreenBlockEntity` on
+the origin block of each wall. Commands (`/jab create`, `/jab url`, `/jab audio`) run
+server-side and broadcast state to clients. The server never renders anything.
+
+**Client** receives screen state over the network, creates Chromium browser instances via
+Rinku, and renders their textures onto the wall blocks. Right-clicking with an empty hand
+opens a browser GUI with a URL bar and full mouse/keyboard forwarding — edits round-trip
+back to the server so all players see the same page in real-time. Browsing is session-only:
+no cache, cookies wiped on every browser destroy.
+
+**Multiplayer** — the wall display is shared. When any player navigates, the URL change is
+broadcast to all tracking clients, who load the same page. Everyone sees the same content
+simultaneously.
+
+**Lifecycle** is distance-gated: browsers are created within `loadDistance` and destroyed
+past `unloadDistance`, with a concurrent cap (`maxBrowsers`). Breaking any block destroys
+the whole display. Browsers unload when chunks unload and recreate on reload. No idle
+Chromium instances are preloaded.
 
 ## Features
 
-- **Multiblock screen walls** — any rectangle of screen blocks (2x2 or larger) becomes a
-  display, on any face of any side of the blocks (walls, floors, ceilings).
-- **Real browser rendering** — pages render onto the blocks in-game with texture quality
-  tied to the GUI scale.
-- **Interactive browser view** — right-click a screen to open the browser GUI with a URL
-  bar (`Ctrl+L` to focus) and full mouse and keyboard forwarding to the page. In-page
+- **Multiblock screen walls** — any rectangle of screen blocks (2x2 minimum) becomes a
+  display, on any face of any side (walls, floors, ceilings).
+- **Real browser rendering** — pages render onto blocks in-game with texture quality tied
+  to GUI scale.
+- **Interactive browser view** — right-click with an empty hand to open the browser GUI
+  with a URL bar (`Ctrl+L` to focus) and full mouse/keyboard forwarding. In-page
   navigation (links, back/forward) works natively and stays in sync with the wall.
+- **Shared displays** — all players on a server see the same page on a wall simultaneously.
 - **Audio modes** — screens can be set to _global_ (page audio plays normally) or
-  _dynamic_ (page volume is driven by your distance from the wall, with a 64-block falloff).
+  _dynamic_ (volume driven by your distance from the wall, 64-block falloff).
 - **Per-face displays** — one wall can show a different page on each of its six faces.
+- **Craftable** — 4 screen blocks per craft (iron nuggets + redstone). Breaks into an item
+  without requiring a specific tool.
 
 ## Screenshots
 
-![JAB in-game](docs/screenshots/sc1.png)
+![JAB in-game](docs/images/sc1.png)
 
-![JAB in-game 2](docs/screenshots/sc2.png)
+![JAB in-game 2](docs/images/sc2.png)
+
+![Crafting recipe](docs/images/craft.png)
 
 ## Requirements
 
 - Minecraft **1.21.11** (Fabric)
 - [Fabric API](https://modrinth.com/mod/fabric-api)
-- [Rinku](https://github.com/Keksuccino/Rinku) (rinku-fabric, `3.0.4-1.21.11`)
+- [Rinku](https://github.com/Keksuccino/Rinku) (`rinku-fabric`, `3.0.4-1.21.11`)
 
 > On first launch Rinku downloads its Chromium native binaries — this may take a few minutes.
 
 ## Usage
 
-1. Craft screen blocks (4 iron nuggets + 1 redstone dust, shaped) and build a flat wall.
+1. Craft screen blocks and build a flat wall (minimum 2x2).
 2. Look at the wall and run:
 
 ```
@@ -54,22 +73,57 @@ maintained by the project author.
 /jab debug                      # print server-side wall info for debugging
 ```
 
-3. Right-click the wall to open the interactive browser view.
+3. Right-click the wall with an **empty hand** to open the interactive browser view.
 
-Breaking any block of a wall also removes its display, so walls can't get stuck in a
-half-broken state.
+Breaking any block of a wall removes its display. Browsers are only active near the player
+and automatically unload at a distance.
 
 ## Configuration
 
 A `config/jab.properties` file is generated on first run:
 
-| Key                               | Default                  | Description                               |
-| --------------------------------- | ------------------------ | ----------------------------------------- |
-| `maxScreenSize`                   | `8`                      | Maximum wall dimension in blocks (max 32) |
-| `defaultResolutionX/Y`            | `1920x1080`              | Browser render resolution for new screens (fixed at creation, max 7680x4320) |
-| `defaultUrl`                      | `https://www.google.com` | Page loaded when a screen is created      |
-| `loadDistance` / `unloadDistance` | `32` / `48`              | Browser lifecycle distance from the wall (max 128) |
-| `maxBrowsers`                     | `16`                     | Concurrent browser cap (extra screens park) |
+| Key                               | Default                  | Description                                       |
+| --------------------------------- | ------------------------ | ------------------------------------------------- |
+| `maxScreenSize`                   | `8`                      | Maximum wall dimension in blocks (max 32)         |
+| `defaultResolutionX`              | `1920`                   | Browser render width for new screens (max 7680)   |
+| `defaultResolutionY`              | `1080`                   | Browser render height for new screens (max 4320)  |
+| `defaultUrl`                      | `https://www.google.com` | Page loaded when a screen is created              |
+| `loadDistance`                     | `32`                     | Distance at which browsers are created (max 128)  |
+| `unloadDistance`                   | `48`                     | Distance at which browsers are destroyed (max 128)|
+| `maxBrowsers`                     | `16`                     | Concurrent browser cap (extra screens park)       |
+
+## Performance
+
+**Good:**
+- Distance-gated lifecycle — browsers are only active near players and destroyed at a
+  distance, keeping idle resource usage low.
+- Max browser cap — `maxBrowsers` prevents runaway memory usage; excess screens park and
+  resume when a slot opens.
+- No idle preload — no Chromium instances exist until a screen is actually created.
+- Chunk-aware — browsers unload when chunks unload and recreate on reload, avoiding wasted
+  work in unloaded areas.
+- Staggered creation — browsers spawn 2 per tick to avoid lag spikes when many screens
+  load at once.
+- Frustum-culled rendering — off-screen walls skip the render pass entirely.
+
+**Not so good:**
+- Each screen is a real Chromium instance — large walls or many simultaneous displays
+  consume significant CPU and memory.
+- First launch downloads Chromium binaries over the network, which may take several
+  minutes.
+- Chromium subprocesses persist until the JVM exits (they are not killed on disconnect
+  or world change).
+- Browser creation is async — after `/jab create`, there is a brief delay before the
+  page appears on the wall.
+- Dynamic audio mode injects JavaScript every 5 seconds for each audio screen, which
+  adds minor per-tick overhead.
+
+## Development
+
+Just A Browser Mod is developed with significant AI assistance. The majority of the
+codebase was generated through AI-assisted development workflows, with human oversight
+for code review, verification, and build processes. All code is reviewed, tested, and
+maintained by the project author.
 
 ## Building
 
@@ -85,7 +139,7 @@ The built jar lands in `build/libs/`. Drop it (plus the requirements above) into
 This mod is heavily inspired by (and builds on) the work of others:
 
 - **[Rinku by Keksuccino](https://github.com/Keksuccino/Rinku)** — the embedded Chromium
-  framework (successor of Keksuccino's MCEF fork) that powers the browser rendering
+  framework that powers the browser rendering
 - **[BrowserMod by Mcjunky33](https://github.com/Mcjunky33/BrowserMod)** — the original
   in-game browser concept
 - **[WebDisplays by CinemaMod](https://github.com/CinemaMod/webdisplays)** — multiblock

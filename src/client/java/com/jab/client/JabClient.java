@@ -24,6 +24,7 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 
 public class JabClient implements ClientModInitializer {
@@ -60,7 +61,10 @@ public class JabClient implements ClientModInitializer {
 
 		// Right-clicking a screen wall opens the browser view.
 		UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
-			if (world.isClientSide() && world.getBlockState(hitResult.getBlockPos()).getBlock() == ModBlocks.SCREEN_BLOCK) {
+			if (world.isClientSide()
+					&& hand == InteractionHand.MAIN_HAND
+					&& player.getMainHandItem().isEmpty()
+					&& world.getBlockState(hitResult.getBlockPos()).getBlock() == ModBlocks.SCREEN_BLOCK) {
 				BlockSide side = BlockSide.fromDirection(hitResult.getDirection());
 				BlockPos origin = Multiblock.resolveOrigin(world, hitResult.getBlockPos(), side);
 				if (world.getBlockEntity(origin) instanceof ScreenBlockEntity sbe) {
