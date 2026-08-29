@@ -45,11 +45,15 @@ Chromium instances are preloaded.
 
 ## Screenshots
 
-![JAB in-game](docs/images/sc1.png)
+![JAB in-game](docs/images/main.png)
 
-![JAB in-game 2](docs/images/sc2.png)
+![JAB in-game 2](docs/images/second.png)
+
+## Crafting Recipe
 
 ![Crafting recipe](docs/images/craft.png)
+
+1 Redstone dust and 4 Iron nuggets
 
 ## Requirements
 
@@ -82,19 +86,20 @@ and automatically unload at a distance.
 
 A `config/jab.properties` file is generated on first run:
 
-| Key                               | Default                  | Description                                       |
-| --------------------------------- | ------------------------ | ------------------------------------------------- |
-| `maxScreenSize`                   | `8`                      | Maximum wall dimension in blocks (max 32)         |
-| `defaultResolutionX`              | `1920`                   | Browser render width for new screens (max 7680)   |
-| `defaultResolutionY`              | `1080`                   | Browser render height for new screens (max 4320)  |
-| `defaultUrl`                      | `https://www.google.com` | Page loaded when a screen is created              |
-| `loadDistance`                     | `32`                     | Distance at which browsers are created (max 128)  |
-| `unloadDistance`                   | `48`                     | Distance at which browsers are destroyed (max 128)|
-| `maxBrowsers`                     | `16`                     | Concurrent browser cap (extra screens park)       |
+| Key                  | Default                  | Description                                        |
+| -------------------- | ------------------------ | -------------------------------------------------- |
+| `maxScreenSize`      | `8`                      | Maximum wall dimension in blocks (max 32)          |
+| `defaultResolutionX` | `1920`                   | Browser render width for new screens (max 7680)    |
+| `defaultResolutionY` | `1080`                   | Browser render height for new screens (max 4320)   |
+| `defaultUrl`         | `https://www.google.com` | Page loaded when a screen is created               |
+| `loadDistance`       | `32`                     | Distance at which browsers are created (max 128)   |
+| `unloadDistance`     | `48`                     | Distance at which browsers are destroyed (max 128) |
+| `maxBrowsers`        | `16`                     | Concurrent browser cap (extra screens park)        |
 
 ## Performance
 
 **Good:**
+
 - Distance-gated lifecycle — browsers are only active near players and destroyed at a
   distance, keeping idle resource usage low.
 - Max browser cap — `maxBrowsers` prevents runaway memory usage; excess screens park and
@@ -107,6 +112,7 @@ A `config/jab.properties` file is generated on first run:
 - Frustum-culled rendering — off-screen walls skip the render pass entirely.
 
 **Not so good:**
+
 - Each screen is a real Chromium instance — large walls or many simultaneous displays
   consume significant CPU and memory.
 - First launch downloads Chromium binaries over the network, which may take several
@@ -136,14 +142,17 @@ The built jar lands in `build/libs/`. Drop it (plus the requirements above) into
 
 ## Credits
 
-This mod is heavily inspired by (and builds on) the work of others:
-
-- **[Rinku by Keksuccino](https://github.com/Keksuccino/Rinku)** — the embedded Chromium
-  framework that powers the browser rendering
-- **[BrowserMod by Mcjunky33](https://github.com/Mcjunky33/BrowserMod)** — the original
-  in-game browser concept
-- **[WebDisplays by CinemaMod](https://github.com/CinemaMod/webdisplays)** — multiblock
+- **[Just A Browser Mod](https://github.com/RenderHam/jab-mod)** by Renderham — the
+  original mod (this project)
+- **[Rinku](https://github.com/Keksuccino/Rinku)** by Keksuccino — the embedded
+  Chromium framework that powers the browser rendering
+- **[BrowserMod](https://github.com/Mcjunky33/BrowserMod)** by Mcjunky33 — the original
+  in-game browser concept for Minecraft
+- **[WebDisplays](https://github.com/CinemaMod/webdisplays)** by CinemaMod — multiblock
   screen walls in Minecraft
+- **[Fabric API](https://github.com/FabricMC/fabric)** by FabricMC — the modding
+  framework this mod is built on
+- **[Minecraft](https://www.minecraft.net/)** by Mojang Studios — the base game
 
 ## License
 
