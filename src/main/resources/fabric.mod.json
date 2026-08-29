@@ -3,7 +3,7 @@
 	"id": "jab",
 	"version": "${version}",
 	"name": "Just A Browser Mod",
-	"description": "Embedded Chromium browsers rendered on multiblock screen walls. Surf the web, watch videos and listen to audio from inside Minecraft.",
+	"description": "Live web browsers on multiblock screen walls. Browse, watch videos, and listen to audio from inside Minecraft.",
 	"authors": [
 		"Renderham"
 	],

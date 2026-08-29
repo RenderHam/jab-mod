@@ -65,10 +65,10 @@ A `config/jab.properties` file is generated on first run:
 
 | Key                               | Default                  | Description                               |
 | --------------------------------- | ------------------------ | ----------------------------------------- |
-| `maxScreenSize`                   | `8`                      | Maximum wall dimension in blocks          |
-| `defaultResolutionX/Y`            | `1920x1080`              | Browser render resolution for new screens (fixed at creation) |
+| `maxScreenSize`                   | `8`                      | Maximum wall dimension in blocks (max 32) |
+| `defaultResolutionX/Y`            | `1920x1080`              | Browser render resolution for new screens (fixed at creation, max 7680x4320) |
 | `defaultUrl`                      | `https://www.google.com` | Page loaded when a screen is created      |
-| `loadDistance` / `unloadDistance` | `32` / `48`              | Browser lifecycle distance from the wall  |
+| `loadDistance` / `unloadDistance` | `32` / `48`              | Browser lifecycle distance from the wall (max 128) |
 | `maxBrowsers`                     | `16`                     | Concurrent browser cap (extra screens park) |
 
 ## Building
