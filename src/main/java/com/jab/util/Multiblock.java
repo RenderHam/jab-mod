@@ -1,6 +1,5 @@
 package com.jab.util;
 
-import com.jab.config.JabConfig;
 import com.jab.registry.ModBlocks;
 
 import net.minecraft.core.BlockPos;
@@ -11,25 +10,35 @@ public class Multiblock {
 	private static final int MAX_MEASURE_STEPS = 64;
 
 	/**
-	 * Walks the wall backwards along the -r and -u vectors until it finds the origin block.
+	 * Resolves the origin block for a screen block hit by a ray.
+	 * The caller must verify the hit block is a screen block before calling.
+	 */
+	public static BlockPos resolveOrigin(Level world, BlockPos hitPos, BlockSide side) {
+		BlockPos.MutableBlockPos origin = hitPos.mutable();
+		findOrigin(world, origin, side);
+		return origin.immutable();
+	}
+
+	/**
+	 * Walks the wall backwards along the -right and -up vectors until it finds the origin block.
 	 * The origin is the bottom-left block of the wall when looking at it.
 	 */
 	public static void findOrigin(Level world, BlockPos.MutableBlockPos pos, BlockSide side) {
 		int steps = 0;
 		do {
-			pos.move(-side.rx, -side.ry, -side.rz);
+			pos.move(-side.rightX, -side.rightY, -side.rightZ);
 			if (++steps > MAX_ORIGIN_STEPS || !world.isInWorldBounds(pos)) break;
 		} while (world.getBlockState(pos).getBlock() == ModBlocks.SCREEN_BLOCK);
 		if (steps <= MAX_ORIGIN_STEPS && world.isInWorldBounds(pos)) {
-			pos.move(side.rx, side.ry, side.rz);
+			pos.move(side.rightX, side.rightY, side.rightZ);
 		}
 		steps = 0;
 		do {
-			pos.move(-side.ux, -side.uy, -side.uz);
+			pos.move(-side.upX, -side.upY, -side.upZ);
 			if (++steps > MAX_ORIGIN_STEPS || !world.isInWorldBounds(pos)) break;
 		} while (world.getBlockState(pos).getBlock() == ModBlocks.SCREEN_BLOCK);
 		if (steps <= MAX_ORIGIN_STEPS && world.isInWorldBounds(pos)) {
-			pos.move(side.ux, side.uy, side.uz);
+			pos.move(side.upX, side.upY, side.upZ);
 		}
 	}
 
@@ -38,12 +47,12 @@ public class Multiblock {
 		BlockPos.MutableBlockPos bp = new BlockPos.MutableBlockPos();
 		bp.set(origin);
 		do {
-			bp.move(side.ux, side.uy, side.uz);
+			bp.move(side.upX, side.upY, side.upZ);
 			height++;
 		} while (height < MAX_MEASURE_STEPS && world.getBlockState(bp).getBlock() == ModBlocks.SCREEN_BLOCK);
 		bp.set(origin);
 		do {
-			bp.move(side.rx, side.ry, side.rz);
+			bp.move(side.rightX, side.rightY, side.rightZ);
 			width++;
 		} while (width < MAX_MEASURE_STEPS && world.getBlockState(bp).getBlock() == ModBlocks.SCREEN_BLOCK);
 		return new int[]{width, height};
@@ -57,34 +66,34 @@ public class Multiblock {
 		BlockPos.MutableBlockPos bp = new BlockPos.MutableBlockPos();
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
-				bp.set(origin.getX() + side.rx * x + side.ux * y,
-						origin.getY() + side.ry * x + side.uy * y,
-						origin.getZ() + side.rz * x + side.uz * y);
+				bp.set(origin.getX() + side.rightX * x + side.upX * y,
+						origin.getY() + side.rightY * x + side.upY * y,
+						origin.getZ() + side.rightZ * x + side.upZ * y);
 				if (world.getBlockState(bp).getBlock() != ModBlocks.SCREEN_BLOCK) {
 					return bp.immutable();
 				}
 			}
 		}
 		// The wall must not have stray screen blocks glued to any of its four edges.
-		bp.set(origin.getX() - side.rx, origin.getY() - side.ry, origin.getZ() - side.rz);
+		bp.set(origin.getX() - side.rightX, origin.getY() - side.rightY, origin.getZ() - side.rightZ);
 		for (int y = 0; y < height; y++) {
 			if (world.getBlockState(bp).getBlock() == ModBlocks.SCREEN_BLOCK) return bp.immutable();
-			bp.move(side.ux, side.uy, side.uz);
+			bp.move(side.upX, side.upY, side.upZ);
 		}
-		bp.set(origin.getX() + side.rx * width, origin.getY() + side.ry * width, origin.getZ() + side.rz * width);
+		bp.set(origin.getX() + side.rightX * width, origin.getY() + side.rightY * width, origin.getZ() + side.rightZ * width);
 		for (int y = 0; y < height; y++) {
 			if (world.getBlockState(bp).getBlock() == ModBlocks.SCREEN_BLOCK) return bp.immutable();
-			bp.move(side.ux, side.uy, side.uz);
+			bp.move(side.upX, side.upY, side.upZ);
 		}
-		bp.set(origin.getX() - side.ux, origin.getY() - side.uy, origin.getZ() - side.uz);
+		bp.set(origin.getX() - side.upX, origin.getY() - side.upY, origin.getZ() - side.upZ);
 		for (int x = 0; x < width; x++) {
 			if (world.getBlockState(bp).getBlock() == ModBlocks.SCREEN_BLOCK) return bp.immutable();
-			bp.move(side.rx, side.ry, side.rz);
+			bp.move(side.rightX, side.rightY, side.rightZ);
 		}
-		bp.set(origin.getX() + side.ux * height, origin.getY() + side.uy * height, origin.getZ() + side.uz * height);
+		bp.set(origin.getX() + side.upX * height, origin.getY() + side.upY * height, origin.getZ() + side.upZ * height);
 		for (int x = 0; x < width; x++) {
 			if (world.getBlockState(bp).getBlock() == ModBlocks.SCREEN_BLOCK) return bp.immutable();
-			bp.move(side.rx, side.ry, side.rz);
+			bp.move(side.rightX, side.rightY, side.rightZ);
 		}
 		return null;
 	}

@@ -63,10 +63,7 @@ public class ScreenBlockEntity extends BlockEntity {
 	public ScreenData addScreen(BlockSide side, int w, int h) {
 		ScreenData existing = screens.get(side);
 		if (existing != null) return existing;
-		ScreenData data = new ScreenData();
-		data.side = side;
-		data.width = w;
-		data.height = h;
+		ScreenData data = ScreenData.create(side, w, h);
 		screens.put(side, data);
 		rebuildScreensSnapshot();
 		setChanged();
@@ -85,7 +82,7 @@ public class ScreenBlockEntity extends BlockEntity {
 	public void replaceAllScreens(List<ScreenData> list) {
 		screens.clear();
 		for (ScreenData s : list) {
-			screens.put(s.side, s);
+			screens.put(s.side(), s);
 		}
 		rebuildScreensSnapshot();
 	}
@@ -93,7 +90,7 @@ public class ScreenBlockEntity extends BlockEntity {
 	public boolean setUrl(BlockSide side, String url) {
 		ScreenData s = screens.get(side);
 		if (s != null) {
-			s.url = url;
+			s.setUrl(url);
 			setChanged();
 			syncUpdate(side);
 			return true;
@@ -104,7 +101,7 @@ public class ScreenBlockEntity extends BlockEntity {
 	public boolean setAudioMode(BlockSide side, ScreenData.AudioMode mode) {
 		ScreenData s = screens.get(side);
 		if (s != null) {
-			s.audioMode = mode;
+			s.setAudioMode(mode);
 			setChanged();
 			syncUpdate(side);
 			return true;
@@ -154,7 +151,7 @@ public class ScreenBlockEntity extends BlockEntity {
 		var listIn = input.listOrEmpty("Screens", CompoundTag.CODEC);
 		for (var tag : listIn) {
 			ScreenData sd = ScreenData.deserialize(tag);
-			screens.put(sd.side, sd);
+			screens.put(sd.side(), sd);
 		}
 		rebuildScreensSnapshot();
 	}
@@ -178,9 +175,10 @@ public class ScreenBlockEntity extends BlockEntity {
 		if (screens.isEmpty()) return new AABB(worldPosition);
 		AABB box = new AABB(worldPosition);
 		for (ScreenData s : screens.values()) {
-			Vec3 f = new Vec3(s.side.fx, s.side.fy, s.side.fz);
-			Vec3 r = new Vec3(s.side.rx * s.width, s.side.ry * s.width, s.side.rz * s.width);
-			Vec3 u = new Vec3(s.side.ux * s.height, s.side.uy * s.height, s.side.uz * s.height);
+			BlockSide side = s.side();
+			Vec3 f = new Vec3(side.faceX, side.faceY, side.faceZ);
+			Vec3 r = new Vec3(side.rightX * s.width(), side.rightY * s.width(), side.rightZ * s.width());
+			Vec3 u = new Vec3(side.upX * s.height(), side.upY * s.height(), side.upZ * s.height());
 			Vec3 c1 = Vec3.atLowerCornerOf(worldPosition).add(f).add(r).add(u);
 			Vec3 c2 = Vec3.atLowerCornerOf(worldPosition);
 			box = box.minmax(new AABB(c1, c2));

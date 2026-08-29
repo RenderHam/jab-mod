@@ -4,7 +4,7 @@ import net.minecraft.core.Direction;
 
 /**
  * Screen orientations. Each side carries three vectors:
- * f = the face normal, r = the right direction along the wall, u = the up direction along the wall.
+ * face = the face normal, right = the right direction along the wall, up = the up direction along the wall.
  */
 public enum BlockSide {
 	BOTTOM(0, -1, 0, 1, 0, 0, 0, 0, -1),
@@ -14,20 +14,20 @@ public enum BlockSide {
 	WEST(-1, 0, 0, 0, 0, 1, 0, 1, 0),
 	EAST(1, 0, 0, 0, 0, -1, 0, 1, 0);
 
-	public final int fx, fy, fz;
-	public final int rx, ry, rz;
-	public final int ux, uy, uz;
+	public final int faceX, faceY, faceZ;
+	public final int rightX, rightY, rightZ;
+	public final int upX, upY, upZ;
 
-	BlockSide(int fx, int fy, int fz, int rx, int ry, int rz, int ux, int uy, int uz) {
-		this.fx = fx;
-		this.fy = fy;
-		this.fz = fz;
-		this.rx = rx;
-		this.ry = ry;
-		this.rz = rz;
-		this.ux = ux;
-		this.uy = uy;
-		this.uz = uz;
+	BlockSide(int faceX, int faceY, int faceZ, int rightX, int rightY, int rightZ, int upX, int upY, int upZ) {
+		this.faceX = faceX;
+		this.faceY = faceY;
+		this.faceZ = faceZ;
+		this.rightX = rightX;
+		this.rightY = rightY;
+		this.rightZ = rightZ;
+		this.upX = upX;
+		this.upY = upY;
+		this.upZ = upZ;
 	}
 
 	public static BlockSide fromDirection(Direction dir) {

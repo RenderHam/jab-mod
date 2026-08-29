@@ -86,7 +86,7 @@ public class ScreenBlock extends BaseEntityBlock {
 	private static void destroyOriginForWallContaining(Level level, BlockPos brokenPos) {
 		Set<BlockPos> visited = new HashSet<>();
 		Queue<BlockPos> queue = new LinkedList<>();
-		int maxArea = JabConfig.maxScreenSize * JabConfig.maxScreenSize;
+		int maxArea = JabConfig.get().maxScreenSize() * JabConfig.get().maxScreenSize();
 		queue.add(brokenPos);
 		while (!queue.isEmpty()) {
 			BlockPos cur = queue.poll();

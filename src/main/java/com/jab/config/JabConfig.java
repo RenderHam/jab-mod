@@ -7,50 +7,93 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.util.Properties;
 
-public class JabConfig {
-	public static int maxScreenSize = 8;
-	public static int defaultResolutionX = 1920;
-	public static int defaultResolutionY = 1080;
-	public static int loadDistance = 32;
-	public static int unloadDistance = 48;
-	public static int maxBrowsers = 16;
-	public static String defaultUrl = "https://www.google.com";
+import net.fabricmc.loader.api.FabricLoader;
 
-	private static final File configFile = new File("config/jab.properties");
+public class JabConfig {
+	public static final String DEFAULT_URL = "https://www.google.com";
+
+	private static JabConfig INSTANCE;
+
+	private final int maxScreenSize;
+	private final int defaultResolutionX;
+	private final int defaultResolutionY;
+	private final int loadDistance;
+	private final int unloadDistance;
+	private final int maxBrowsers;
+	private final String defaultUrl;
+
+	private JabConfig(int maxScreenSize, int defaultResolutionX, int defaultResolutionY,
+			int loadDistance, int unloadDistance, int maxBrowsers, String defaultUrl) {
+		this.maxScreenSize = maxScreenSize;
+		this.defaultResolutionX = defaultResolutionX;
+		this.defaultResolutionY = defaultResolutionY;
+		this.loadDistance = loadDistance;
+		this.unloadDistance = unloadDistance;
+		this.maxBrowsers = maxBrowsers;
+		this.defaultUrl = defaultUrl;
+	}
+
+	public static JabConfig get() {
+		if (INSTANCE == null) {
+			throw new IllegalStateException("JabConfig not loaded yet");
+		}
+		return INSTANCE;
+	}
+
+	public int maxScreenSize() { return maxScreenSize; }
+	public int defaultResolutionX() { return defaultResolutionX; }
+	public int defaultResolutionY() { return defaultResolutionY; }
+	public int loadDistance() { return loadDistance; }
+	public int unloadDistance() { return unloadDistance; }
+	public int maxBrowsers() { return maxBrowsers; }
+	public String defaultUrl() { return defaultUrl; }
+
+	private static final File configFile = FabricLoader.getInstance().getConfigDir().resolve("jab.properties").toFile();
 
 	public static void load() {
-		if (!configFile.exists()) {
-			save();
-			return;
+		int maxScreenSize = 8;
+		int defaultResolutionX = 1920;
+		int defaultResolutionY = 1080;
+		int loadDistance = 32;
+		int unloadDistance = 48;
+		int maxBrowsers = 16;
+		String defaultUrl = DEFAULT_URL;
+
+		if (configFile.exists()) {
+			try (FileReader reader = new FileReader(configFile)) {
+				Properties props = new Properties();
+				props.load(reader);
+				maxScreenSize = Math.min(32, Math.max(2, parseInt(props, "maxScreenSize", 8)));
+				defaultResolutionX = Math.min(7680, Math.max(1, parseInt(props, "defaultResolutionX", 1920)));
+				defaultResolutionY = Math.min(4320, Math.max(1, parseInt(props, "defaultResolutionY", 1080)));
+				loadDistance = Math.min(128, Math.max(4, parseInt(props, "loadDistance", 32)));
+				unloadDistance = Math.min(128, Math.max(loadDistance, parseInt(props, "unloadDistance", 48)));
+				maxBrowsers = Math.max(1, parseInt(props, "maxBrowsers", 16));
+				String url = props.getProperty("defaultUrl", DEFAULT_URL);
+				defaultUrl = (url == null || url.isBlank()) ? DEFAULT_URL : url.trim();
+			} catch (Exception e) {
+				JabMod.LOGGER.warn("Failed to load config", e);
+			}
 		}
-		try (FileReader reader = new FileReader(configFile)) {
-			Properties props = new Properties();
-			props.load(reader);
-			maxScreenSize = Math.max(2, parseInt(props, "maxScreenSize", 8));
-			defaultResolutionX = Math.max(1, parseInt(props, "defaultResolutionX", 1920));
-			defaultResolutionY = Math.max(1, parseInt(props, "defaultResolutionY", 1080));
-			loadDistance = Math.max(4, parseInt(props, "loadDistance", 32));
-			unloadDistance = Math.max(loadDistance, parseInt(props, "unloadDistance", 48));
-			maxBrowsers = Math.max(1, parseInt(props, "maxBrowsers", 16));
-			String url = props.getProperty("defaultUrl", "https://www.google.com");
-			defaultUrl = (url == null || url.isBlank()) ? "https://www.google.com" : url.trim();
-		} catch (Exception e) {
-			JabMod.LOGGER.warn("Failed to load config", e);
-		}
+
+		INSTANCE = new JabConfig(maxScreenSize, defaultResolutionX, defaultResolutionY,
+				loadDistance, unloadDistance, maxBrowsers, defaultUrl);
+		save();
 	}
 
 	public static void save() {
+		if (INSTANCE == null) return;
 		try {
 			configFile.getParentFile().mkdirs();
 			try (FileWriter writer = new FileWriter(configFile)) {
 				Properties props = new Properties();
-				props.setProperty("maxScreenSize", String.valueOf(maxScreenSize));
-				props.setProperty("defaultResolutionX", String.valueOf(defaultResolutionX));
-				props.setProperty("defaultResolutionY", String.valueOf(defaultResolutionY));
-				props.setProperty("loadDistance", String.valueOf(loadDistance));
-				props.setProperty("unloadDistance", String.valueOf(unloadDistance));
-				props.setProperty("maxBrowsers", String.valueOf(maxBrowsers));
-				props.setProperty("defaultUrl", defaultUrl);
+				props.setProperty("maxScreenSize", String.valueOf(INSTANCE.maxScreenSize));
+				props.setProperty("defaultResolutionX", String.valueOf(INSTANCE.defaultResolutionX));
+				props.setProperty("defaultResolutionY", String.valueOf(INSTANCE.defaultResolutionY));
+				props.setProperty("loadDistance", String.valueOf(INSTANCE.loadDistance));
+				props.setProperty("unloadDistance", String.valueOf(INSTANCE.unloadDistance));
+				props.setProperty("maxBrowsers", String.valueOf(INSTANCE.maxBrowsers));
+				props.setProperty("defaultUrl", INSTANCE.defaultUrl);
 				props.store(writer, "Just A Browser Mod configuration");
 			}
 		} catch (Exception e) {

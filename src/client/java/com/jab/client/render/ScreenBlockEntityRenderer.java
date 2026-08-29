@@ -22,13 +22,15 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec3;
 
-import org.joml.Vector3f;
-
 /**
  * Draws each screen as a textured quad floating a hair in front of its wall face.
  * The texture is the Rinku browser's frame, updated by Rinku itself.
  */
 public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBlockEntity, ScreenBlockEntityRenderState> {
+	private static final float Z_FIGHT_EPSILON = 0.001f;
+	private static final int LIGHT_FULLBRIGHT = 0xF000F0;
+	private static final int VIEW_DISTANCE = 64;
+
 	public ScreenBlockEntityRenderer(BlockEntityRendererProvider.Context ctx) {
 	}
 
@@ -53,7 +55,7 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 		if (state.screens == null || state.screens.isEmpty()) return;
 
 		for (ScreenData screen : state.screens) {
-			RinkuBrowser browser = ScreenBrowserManager.getBrowser(state.pos, screen.side);
+			RinkuBrowser browser = ScreenBrowserManager.getBrowser(state.pos, screen.side());
 			if (browser == null) continue;
 			if (!browser.isTextureReady()) continue;
 
@@ -65,34 +67,35 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 	}
 
 	private void renderTexturedQuad(ScreenData screen, BlockPos pos, Identifier texId, PoseStack poseStack, SubmitNodeCollector submitNodeCollector) {
-		BlockSide side = screen.side;
-		float w = screen.width;
-		float h = screen.height;
+		BlockSide side = screen.side();
+		float w = screen.width();
+		float h = screen.height();
+		float nx = (float) side.faceX;
+		float ny = (float) side.faceY;
+		float nz = (float) side.faceZ;
 
 		// Shift the quad slightly off the block face to avoid z-fighting.
-		float eps = 0.001f;
-		float faceX = (side.fx > 0 ? 1 : 0) + (side.fx * eps);
-		float faceY = (side.fy > 0 ? 1 : 0) + (side.fy * eps);
-		float faceZ = (side.fz > 0 ? 1 : 0) + (side.fz * eps);
+		float faceX = (side.faceX > 0 ? 1 : 0) + (side.faceX * Z_FIGHT_EPSILON);
+		float faceY = (side.faceY > 0 ? 1 : 0) + (side.faceY * Z_FIGHT_EPSILON);
+		float faceZ = (side.faceZ > 0 ? 1 : 0) + (side.faceZ * Z_FIGHT_EPSILON);
 
-		float sx = faceX + (side.rx < 0 ? 1 : 0) + (side.ux < 0 ? 1 : 0);
-		float sy = faceY + (side.ry < 0 ? 1 : 0) + (side.uy < 0 ? 1 : 0);
-		float sz = faceZ + (side.rz < 0 ? 1 : 0) + (side.uz < 0 ? 1 : 0);
+		float sx = faceX + (side.rightX < 0 ? 1 : 0) + (side.upX < 0 ? 1 : 0);
+		float sy = faceY + (side.rightY < 0 ? 1 : 0) + (side.upY < 0 ? 1 : 0);
+		float sz = faceZ + (side.rightZ < 0 ? 1 : 0) + (side.upZ < 0 ? 1 : 0);
 
-		Vector3f p0 = new Vector3f(sx, sy, sz);
-		Vector3f p1 = new Vector3f(sx + side.rx * w, sy + side.ry * w, sz + side.rz * w);
-		Vector3f p2 = new Vector3f(sx + side.rx * w + side.ux * h, sy + side.ry * w + side.uy * h, sz + side.rz * w + side.uz * h);
-		Vector3f p3 = new Vector3f(sx + side.ux * h, sy + side.uy * h, sz + side.uz * h);
+		float rx = side.rightX * w;
+		float ry = side.rightY * w;
+		float rz = side.rightZ * w;
+		float ux = side.upX * h;
+		float uy = side.upY * h;
+		float uz = side.upZ * h;
 
 		submitNodeCollector.submitCustomGeometry(poseStack, RenderTypes.entityCutoutNoCull(texId, false), (pose, consumer) -> {
 			var mat = pose.pose();
-			float nx = (float) side.fx;
-			float ny = (float) side.fy;
-			float nz = (float) side.fz;
-			consumer.addVertex(mat, p0.x, p0.y, p0.z).setColor(255, 255, 255, 255).setUv(0, 1).setOverlay(OverlayTexture.NO_OVERLAY).setNormal(nx, ny, nz).setLight(0xF000F0);
-			consumer.addVertex(mat, p1.x, p1.y, p1.z).setColor(255, 255, 255, 255).setUv(1, 1).setOverlay(OverlayTexture.NO_OVERLAY).setNormal(nx, ny, nz).setLight(0xF000F0);
-			consumer.addVertex(mat, p2.x, p2.y, p2.z).setColor(255, 255, 255, 255).setUv(1, 0).setOverlay(OverlayTexture.NO_OVERLAY).setNormal(nx, ny, nz).setLight(0xF000F0);
-			consumer.addVertex(mat, p3.x, p3.y, p3.z).setColor(255, 255, 255, 255).setUv(0, 0).setOverlay(OverlayTexture.NO_OVERLAY).setNormal(nx, ny, nz).setLight(0xF000F0);
+			consumer.addVertex(mat, sx, sy, sz).setColor(255, 255, 255, 255).setUv(0, 1).setOverlay(OverlayTexture.NO_OVERLAY).setNormal(nx, ny, nz).setLight(LIGHT_FULLBRIGHT);
+			consumer.addVertex(mat, sx + rx, sy + ry, sz + rz).setColor(255, 255, 255, 255).setUv(1, 1).setOverlay(OverlayTexture.NO_OVERLAY).setNormal(nx, ny, nz).setLight(LIGHT_FULLBRIGHT);
+			consumer.addVertex(mat, sx + rx + ux, sy + ry + uy, sz + rz + uz).setColor(255, 255, 255, 255).setUv(1, 0).setOverlay(OverlayTexture.NO_OVERLAY).setNormal(nx, ny, nz).setLight(LIGHT_FULLBRIGHT);
+			consumer.addVertex(mat, sx + ux, sy + uy, sz + uz).setColor(255, 255, 255, 255).setUv(0, 0).setOverlay(OverlayTexture.NO_OVERLAY).setNormal(nx, ny, nz).setLight(LIGHT_FULLBRIGHT);
 		});
 	}
 
@@ -103,6 +106,6 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 
 	@Override
 	public int getViewDistance() {
-		return 64;
+		return VIEW_DISTANCE;
 	}
 }

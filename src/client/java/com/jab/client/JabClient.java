@@ -5,6 +5,7 @@ import de.keksuccino.rinku.Rinku;
 import com.jab.blockentity.ScreenBlockEntity;
 import com.jab.client.browser.AudioModeHandler;
 import com.jab.client.browser.BrowserManager;
+import com.jab.client.browser.PendingScreenCache;
 import com.jab.client.browser.ScreenBrowserManager;
 import com.jab.client.gui.BrowserScreen;
 import com.jab.client.network.ClientNetworking;
@@ -54,21 +55,20 @@ public class JabClient implements ClientModInitializer {
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			AudioModeHandler.tick();
 			ScreenBrowserManager.tick();
-			ScreenBrowserManager.applyPending();
+			PendingScreenCache.tickFlush();
 		});
 
 		// Right-clicking a screen wall opens the browser view.
 		UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
 			if (world.isClientSide() && world.getBlockState(hitResult.getBlockPos()).getBlock() == ModBlocks.SCREEN_BLOCK) {
 				BlockSide side = BlockSide.fromDirection(hitResult.getDirection());
-				BlockPos.MutableBlockPos origin = hitResult.getBlockPos().mutable();
-				Multiblock.findOrigin(world, origin, side);
+				BlockPos origin = Multiblock.resolveOrigin(world, hitResult.getBlockPos(), side);
 				if (world.getBlockEntity(origin) instanceof ScreenBlockEntity sbe) {
 					ScreenData scr = sbe.getScreen(side);
 					if (scr != null) {
-						ScreenBrowserManager.sync(origin.immutable(), sbe.getScreens());
+						ScreenBrowserManager.sync(origin, sbe.getScreens());
 						Minecraft.getInstance().setScreen(
-								new BrowserScreen(origin.immutable(), side.ordinal(), scr.url));
+								new BrowserScreen(origin, side.ordinal(), scr.url()));
 						return InteractionResult.SUCCESS;
 					}
 				}

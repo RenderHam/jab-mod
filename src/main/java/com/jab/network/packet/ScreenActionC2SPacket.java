@@ -3,6 +3,7 @@ package com.jab.network.packet;
 import com.jab.JabMod;
 import com.jab.blockentity.ScreenBlockEntity;
 import com.jab.util.BlockSide;
+import com.jab.util.UrlUtil;
 
 import io.netty.buffer.ByteBuf;
 
@@ -42,13 +43,13 @@ public record ScreenActionC2SPacket(BlockPos pos, BlockSide side, String url) im
 		ServerPlayer player = ctx.player();
 		if (player == null) return;
 		ctx.server().execute(() -> {
-			ServerLevel level = (ServerLevel) player.level();
+			if (!(player.level() instanceof ServerLevel level)) return;
 			if (player.distanceToSqr(Vec3.atCenterOf(payload.pos())) > 4096) return;
 			if (!(level.getBlockEntity(payload.pos()) instanceof ScreenBlockEntity sbe)) return;
-			if (sbe.getScreen(payload.side) == null) return;
+			if (sbe.getScreen(payload.side()) == null) return;
 
-			String url = payload.url();
-			if (url != null && url.length() <= 2048 && (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("about:"))) {
+			String url = UrlUtil.sanitize(payload.url());
+			if (UrlUtil.isValidLength(url)) {
 				sbe.setUrl(payload.side(), url);
 			}
 		});

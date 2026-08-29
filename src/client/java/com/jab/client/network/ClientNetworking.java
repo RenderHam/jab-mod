@@ -1,6 +1,7 @@
 package com.jab.client.network;
 
 import com.jab.blockentity.ScreenBlockEntity;
+import com.jab.client.browser.PendingScreenCache;
 import com.jab.client.browser.ScreenBrowserManager;
 import com.jab.data.ScreenData;
 import com.jab.network.packet.ScreenActionC2SPacket;
@@ -34,7 +35,7 @@ public class ClientNetworking {
 				} else {
 					// The wall's block update may still be in flight; stash the data and
 					// apply it once the block entity shows up.
-					ScreenBrowserManager.storePending(payload.pos(), payload.screens());
+					PendingScreenCache.store(payload.pos(), payload.screens());
 				}
 			});
 		});
@@ -49,17 +50,14 @@ public class ClientNetworking {
 
 				BlockEntity be = world.getBlockEntity(payload.pos());
 				if (be instanceof ScreenBlockEntity sbe) {
-					ScreenData existing = sbe.getScreen(update.side);
+					ScreenData existing = sbe.getScreen(update.side());
 					if (existing != null) {
-						existing.url = update.url;
-						existing.resX = update.resX;
-						existing.resY = update.resY;
-						existing.audioMode = update.audioMode;
+						existing.copyFrom(update);
 					} else {
-						ScreenBrowserManager.applyUpdate(payload.pos(), update);
+						PendingScreenCache.applyUpdate(payload.pos(), update);
 					}
 				} else {
-					ScreenBrowserManager.applyUpdate(payload.pos(), update);
+					PendingScreenCache.applyUpdate(payload.pos(), update);
 				}
 			});
 		});

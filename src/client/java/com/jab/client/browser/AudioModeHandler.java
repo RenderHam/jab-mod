@@ -36,9 +36,9 @@ public class AudioModeHandler {
 		Map<BlockSide, AudioState> bySide = dynamicScreens.computeIfAbsent(k, key -> new HashMap<>());
 		Set<BlockSide> keep = new HashSet<>();
 		for (ScreenData s : screens) {
-			if (s.audioMode == ScreenData.AudioMode.DYNAMIC) {
-				keep.add(s.side);
-				bySide.putIfAbsent(s.side, new AudioState());
+			if (s.audioMode() == ScreenData.AudioMode.DYNAMIC) {
+				keep.add(s.side());
+				bySide.putIfAbsent(s.side(), new AudioState());
 			}
 		}
 		bySide.keySet().retainAll(keep);
@@ -47,12 +47,12 @@ public class AudioModeHandler {
 
 	public static void updateScreen(BlockPos pos, ScreenData screen) {
 		long k = pos.asLong();
-		if (screen.audioMode == ScreenData.AudioMode.DYNAMIC) {
-			dynamicScreens.computeIfAbsent(k, key -> new HashMap<>()).put(screen.side, new AudioState());
+		if (screen.audioMode() == ScreenData.AudioMode.DYNAMIC) {
+			dynamicScreens.computeIfAbsent(k, key -> new HashMap<>()).put(screen.side(), new AudioState());
 		} else {
 			Map<BlockSide, AudioState> byPos = dynamicScreens.get(k);
 			if (byPos != null) {
-				byPos.remove(screen.side);
+				byPos.remove(screen.side());
 				if (byPos.isEmpty()) dynamicScreens.remove(k);
 			}
 		}

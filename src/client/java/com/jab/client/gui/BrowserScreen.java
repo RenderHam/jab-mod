@@ -8,6 +8,7 @@ import com.jab.client.browser.ScreenBrowserManager;
 import com.jab.client.network.ClientNetworking;
 import com.jab.data.ScreenData;
 import com.jab.util.BlockSide;
+import com.jab.util.UrlUtil;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -30,7 +31,7 @@ import org.lwjgl.glfw.GLFW;
  */
 public class BrowserScreen extends Screen {
 	private final BlockPos pos;
-	private final int sideOrd;
+	private final BlockSide side;
 	private String currentUrl;
 	private String syncedUrl;
 	private RinkuBrowser browser;
@@ -46,7 +47,7 @@ public class BrowserScreen extends Screen {
 	public BrowserScreen(BlockPos pos, int sideOrd, String currentUrl) {
 		super(Component.literal("JAB - Browser"));
 		this.pos = pos;
-		this.sideOrd = sideOrd;
+		this.side = BlockSide.values()[sideOrd];
 		this.currentUrl = currentUrl != null ? currentUrl : "about:blank";
 		this.syncedUrl = this.currentUrl;
 	}
@@ -56,7 +57,7 @@ public class BrowserScreen extends Screen {
 	}
 
 	public int getSideOrdinal() {
-		return sideOrd;
+		return side.ordinal();
 	}
 
 	@Override
@@ -71,7 +72,7 @@ public class BrowserScreen extends Screen {
 	@Override
 	public void tick() {
 		super.tick();
-		ScreenData sd = ScreenBrowserManager.getDesiredScreen(pos, BlockSide.values()[sideOrd]);
+		ScreenData sd = ScreenBrowserManager.getDesiredScreen(pos, side);
 		if (sd == null) {
 			if (minecraft != null) minecraft.setScreen(null);
 			return;
@@ -108,11 +109,11 @@ public class BrowserScreen extends Screen {
 	}
 
 	private void fetchBrowser() {
-		ScreenBrowserManager.ensureBrowser(pos, BlockSide.values()[sideOrd]);
-		browser = ScreenBrowserManager.getBrowser(pos, BlockSide.values()[sideOrd]);
+		ScreenBrowserManager.ensureBrowser(pos, side);
+		browser = ScreenBrowserManager.getBrowser(pos, side);
 		if (browser == null) {
 			if (!browserNotReadyLogged) {
-				JabMod.LOGGER.info("Browser not ready yet for {} side={}", pos, BlockSide.values()[sideOrd]);
+				JabMod.LOGGER.info("Browser not ready yet for {} side={}", pos, side);
 				browserNotReadyLogged = true;
 			}
 		}
@@ -138,8 +139,8 @@ public class BrowserScreen extends Screen {
 		currentUrl = current;
 		urlBox.setValue(current);
 		urlBox.setCursorPosition(current.length());
-		ClientNetworking.sendUrl(pos, BlockSide.values()[sideOrd], current);
-		JabMod.LOGGER.info("GUI URL synced to server for {} side={} -> {}", pos, BlockSide.values()[sideOrd], current);
+		ClientNetworking.sendUrl(pos, side, current);
+		JabMod.LOGGER.info("GUI URL synced to server for {} side={} -> {}", pos, side, current);
 	}
 
 	@Override
@@ -183,6 +184,17 @@ public class BrowserScreen extends Screen {
 		int x = width / 2 - font.width(text) / 2;
 		int y = height / 2 - 10;
 		guiGraphics.drawString(font, text, x, y, 0xFFFFFFFF);
+	}
+
+	@Override
+	public void mouseMoved(double mouseX, double mouseY) {
+		if (browser != null && mouseY >= TOOLBAR_HEIGHT) {
+			int[] px = guiToBrowser(mouseX, mouseY);
+			if (px != null) {
+				browser.sendMouseMove(px[0], px[1]);
+			}
+		}
+		super.mouseMoved(mouseX, mouseY);
 	}
 
 	@Override
@@ -291,9 +303,7 @@ public class BrowserScreen extends Screen {
 
 	private void navigateToUrl(String url) {
 		if (url == null || url.isEmpty()) return;
-		if (!url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("about:")) {
-			url = "https://" + url;
-		}
+		url = UrlUtil.sanitize(url);
 		currentUrl = url;
 		syncedUrl = url;
 		if (browser != null) {
@@ -303,8 +313,8 @@ public class BrowserScreen extends Screen {
 			urlBox.setValue(url);
 			urlBox.setFocused(false);
 		}
-		ClientNetworking.sendUrl(pos, BlockSide.values()[sideOrd], url);
-		JabMod.LOGGER.info("GUI URL changed for {} side={} -> {}", pos, BlockSide.values()[sideOrd], url);
+		ClientNetworking.sendUrl(pos, side, url);
+		JabMod.LOGGER.info("GUI URL changed for {} side={} -> {}", pos, side, url);
 	}
 
 	private int[] guiToBrowser(double guiX, double guiY) {
@@ -319,7 +329,7 @@ public class BrowserScreen extends Screen {
 	@Override
 	public void onClose() {
 		BrowserManager.resetCursor();
-		JabMod.LOGGER.info("Closed browser GUI for pos={} side={}", pos, BlockSide.values()[sideOrd]);
+		JabMod.LOGGER.info("Closed browser GUI for pos={} side={}", pos, side);
 		super.onClose();
 	}
 

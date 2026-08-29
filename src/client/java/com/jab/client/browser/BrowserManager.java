@@ -56,8 +56,6 @@ public class BrowserManager {
 		} catch (Exception e) {
 			JabMod.LOGGER.warn("Failed to close browser id={}", browser.getIdentifier(), e);
 		}
-		wipeBrowsingData();
-		resetCursor();
 	}
 
 	/** Session-only privacy: every browser destroy clears the in-memory cookie jar. */
