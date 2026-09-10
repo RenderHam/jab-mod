@@ -14,7 +14,7 @@ import net.minecraft.world.level.material.PushReaction;
 public class ModBlocks {
 	public static final Block SCREEN_BLOCK = new ScreenBlock(BlockBehaviour.Properties.of()
 			.strength(1.5f, 6.0f)
-			.pushReaction(PushReaction.IGNORE)
+			.pushReaction(PushReaction.DESTROY)
 			.noOcclusion()
 			.setId(ResourceKey.create(BuiltInRegistries.BLOCK.key(),
 					Identifier.fromNamespaceAndPath(JabMod.MOD_ID, "screen_block"))));

@@ -44,10 +44,10 @@ public class BrowserScreen extends Screen {
 	private boolean browserNotReadyLogged = false;
 	private int fetchRetryTick = 0;
 
-	public BrowserScreen(BlockPos pos, int sideOrd, String currentUrl) {
+	public BrowserScreen(BlockPos pos, BlockSide side, String currentUrl) {
 		super(Component.literal("JAB - Browser"));
 		this.pos = pos;
-		this.side = BlockSide.values()[sideOrd];
+		this.side = side;
 		this.currentUrl = currentUrl != null ? currentUrl : "about:blank";
 		this.syncedUrl = this.currentUrl;
 	}
@@ -56,8 +56,8 @@ public class BrowserScreen extends Screen {
 		return pos;
 	}
 
-	public int getSideOrdinal() {
-		return side.ordinal();
+	public BlockSide getSide() {
+		return side;
 	}
 
 	@Override
@@ -122,7 +122,7 @@ public class BrowserScreen extends Screen {
 	private void initToolbar() {
 		int padding = 4;
 		urlBox = new EditBox(font, padding, (TOOLBAR_HEIGHT - 20) / 2, width - padding * 2, 20, Component.literal("URL"));
-		urlBox.setMaxLength(2048);
+		urlBox.setMaxLength(UrlUtil.MAX_URL_LENGTH);
 		urlBox.setValue(currentUrl);
 		urlBox.setCursorPosition(currentUrl.length());
 		urlBox.setBordered(true);
@@ -174,6 +174,7 @@ public class BrowserScreen extends Screen {
 			}
 			guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texId, displayX, displayY, 0f, 0f, displayW, displayH, displayW, displayH);
 		} catch (Exception e) {
+			JabMod.LOGGER.warn("Browser render failed for pos={} side={}", pos, side, e);
 			browser = null;
 			drawLoadingText(guiGraphics);
 		}
@@ -189,9 +190,10 @@ public class BrowserScreen extends Screen {
 	@Override
 	public void mouseMoved(double mouseX, double mouseY) {
 		if (browser != null && mouseY >= TOOLBAR_HEIGHT) {
-			int[] px = guiToBrowser(mouseX, mouseY);
-			if (px != null) {
-				browser.sendMouseMove(px[0], px[1]);
+			int bx = toBrowserX(mouseX);
+			int by = toBrowserY(mouseY);
+			if (bx >= 0 && by >= 0) {
+				browser.sendMouseMove(bx, by);
 			}
 		}
 		super.mouseMoved(mouseX, mouseY);
@@ -211,10 +213,11 @@ public class BrowserScreen extends Screen {
 		}
 
 		if (browser != null) {
-			int[] px = guiToBrowser(mx, my);
-			if (px != null) {
-				browser.sendMouseMove(px[0], px[1]);
-				browser.sendMousePress(px[0], px[1], event.button());
+			int bx = toBrowserX(mx);
+			int by = toBrowserY(my);
+			if (bx >= 0 && by >= 0) {
+				browser.sendMouseMove(bx, by);
+				browser.sendMousePress(bx, by, event.button());
 				return true;
 			}
 		}
@@ -227,10 +230,11 @@ public class BrowserScreen extends Screen {
 		double my = event.y();
 
 		if (browser != null && my >= TOOLBAR_HEIGHT) {
-			int[] px = guiToBrowser(mx, my);
-			if (px != null) {
-				browser.sendMouseMove(px[0], px[1]);
-				browser.sendMouseRelease(px[0], px[1], event.button());
+			int bx = toBrowserX(mx);
+			int by = toBrowserY(my);
+			if (bx >= 0 && by >= 0) {
+				browser.sendMouseMove(bx, by);
+				browser.sendMouseRelease(bx, by, event.button());
 				return true;
 			}
 		}
@@ -240,9 +244,10 @@ public class BrowserScreen extends Screen {
 	@Override
 	public boolean mouseScrolled(double x, double y, double horizontal, double vertical) {
 		if (browser != null && y >= TOOLBAR_HEIGHT) {
-			int[] px = guiToBrowser(x, y);
-			if (px != null) {
-				browser.sendMouseWheel(px[0], px[1], vertical * 100, 0);
+			int bx = toBrowserX(x);
+			int by = toBrowserY(y);
+			if (bx >= 0 && by >= 0) {
+				browser.sendMouseWheel(bx, by, vertical * 100, 0);
 				return true;
 			}
 		}
@@ -317,13 +322,14 @@ public class BrowserScreen extends Screen {
 		JabMod.LOGGER.info("GUI URL changed for {} side={} -> {}", pos, side, url);
 	}
 
-	private int[] guiToBrowser(double guiX, double guiY) {
-		if (browser == null) return null;
-		if (displayW <= 0 || displayH <= 0) return null;
-		int scale = Minecraft.getInstance().getWindow().getGuiScale();
-		int bx = (int) (guiX * scale);
-		int by = (int) ((guiY - TOOLBAR_HEIGHT) * scale);
-		return new int[]{bx, by};
+	private int toBrowserX(double guiX) {
+		if (browser == null || displayW <= 0) return -1;
+		return (int) (guiX * Minecraft.getInstance().getWindow().getGuiScale());
+	}
+
+	private int toBrowserY(double guiY) {
+		if (browser == null || displayH <= 0) return -1;
+		return (int) ((guiY - TOOLBAR_HEIGHT) * Minecraft.getInstance().getWindow().getGuiScale());
 	}
 
 	@Override

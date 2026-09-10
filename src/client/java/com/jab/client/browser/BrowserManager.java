@@ -10,16 +10,12 @@ import net.minecraft.client.Minecraft;
 import org.cef.network.CefCookieManager;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Thin wrapper around Rinku's browser lifecycle. Rinku initialization is async,
  * so browsers can only be created after the init callback has fired.
  */
 public class BrowserManager {
-	private static final Map<Integer, RinkuBrowser> browsers = new HashMap<>();
-	private static boolean initialized = false;
+	private static volatile boolean initialized = false;
 
 	public static void init() {
 		if (initialized) return;
@@ -41,7 +37,6 @@ public class BrowserManager {
 		}
 		RinkuBrowser browser = Rinku.createBrowser(url, transparent, width, height);
 		if (browser != null) {
-			browsers.put(browser.getIdentifier(), browser);
 			JabMod.LOGGER.info("Created browser id={} url={} {}x{}", browser.getIdentifier(), url, width, height);
 		} else {
 			JabMod.LOGGER.warn("Rinku.createBrowser returned null (url={})", url);
@@ -51,7 +46,6 @@ public class BrowserManager {
 
 	public static void destroyBrowser(RinkuBrowser browser) {
 		if (browser == null) return;
-		browsers.remove(browser.getIdentifier());
 		try {
 			browser.close();
 		} catch (Exception e) {

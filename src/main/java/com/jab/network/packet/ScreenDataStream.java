@@ -10,16 +10,27 @@ import net.minecraft.network.codec.StreamCodec;
 
 public class ScreenDataStream {
 	public static final StreamCodec<ByteBuf, ScreenData> STREAM_CODEC = StreamCodec.composite(
-			ByteBufCodecs.VAR_INT, d -> d.side().ordinal(),
+			ByteBufCodecs.STRING_UTF8, d -> d.side().name(),
 			ByteBufCodecs.VAR_INT, ScreenData::width,
 			ByteBufCodecs.VAR_INT, ScreenData::height,
 			ByteBufCodecs.VAR_INT, ScreenData::resolutionX,
 			ByteBufCodecs.VAR_INT, ScreenData::resolutionY,
 			ByteBufCodecs.STRING_UTF8, ScreenData::url,
-			ByteBufCodecs.VAR_INT, d -> d.audioMode().ordinal(),
-		(side, w, h, rx, ry, url, am) -> ScreenData.decode(
-				BlockSide.values()[Math.clamp(side, 0, BlockSide.values().length - 1)],
-				w, h, rx, ry, url,
-				ScreenData.AudioMode.values()[Math.clamp(am, 0, ScreenData.AudioMode.values().length - 1)])
+			ByteBufCodecs.STRING_UTF8, d -> d.audioMode().name(),
+		(side, w, h, rx, ry, url, am) -> {
+			BlockSide sideEnum;
+			try {
+				sideEnum = BlockSide.valueOf(side);
+			} catch (IllegalArgumentException e) {
+				sideEnum = BlockSide.BOTTOM;
+			}
+			ScreenData.AudioMode audioMode;
+			try {
+				audioMode = ScreenData.AudioMode.valueOf(am);
+			} catch (IllegalArgumentException e) {
+				audioMode = ScreenData.AudioMode.GLOBAL;
+			}
+			return ScreenData.decode(sideEnum, w, h, rx, ry, url, audioMode);
+		}
 	);
 }

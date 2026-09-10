@@ -31,10 +31,24 @@ public enum BlockSide {
 	}
 
 	public static BlockSide fromDirection(Direction dir) {
-		return values()[dir.ordinal()];
+		return switch (dir) {
+			case DOWN -> BOTTOM;
+			case UP -> TOP;
+			case NORTH -> NORTH;
+			case SOUTH -> SOUTH;
+			case WEST -> WEST;
+			case EAST -> EAST;
+		};
 	}
 
 	public Direction toDirection() {
-		return Direction.values()[ordinal()];
+		return switch (this) {
+			case BOTTOM -> Direction.DOWN;
+			case TOP -> Direction.UP;
+			case NORTH -> Direction.NORTH;
+			case SOUTH -> Direction.SOUTH;
+			case WEST -> Direction.WEST;
+			case EAST -> Direction.EAST;
+		};
 	}
 }

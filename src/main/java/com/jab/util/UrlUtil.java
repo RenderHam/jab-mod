@@ -6,6 +6,8 @@ import com.jab.config.JabConfig;
  * URL sanitization and validation for screen displays.
  */
 public final class UrlUtil {
+	public static final int MAX_URL_LENGTH = 2048;
+
 	private UrlUtil() {}
 
 	/**
@@ -25,6 +27,6 @@ public final class UrlUtil {
 	 * Returns true if the URL is within the allowed length.
 	 */
 	public static boolean isValidLength(String url) {
-		return url != null && url.length() <= 2048;
+		return url != null && url.length() <= MAX_URL_LENGTH;
 	}
 }

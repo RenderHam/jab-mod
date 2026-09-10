@@ -61,17 +61,17 @@ public class JabCommand {
 		}
 
 		BlockPos originPos = look.origin();
-		int[] size = Multiblock.measure(world, originPos, look.side());
-		if (size[0] < 2 || size[1] < 2) {
+		Multiblock.WallSize size = Multiblock.measure(world, originPos, look.side());
+		if (size.width() < 2 || size.height() < 2) {
 			source.sendFailure(Component.literal("Screen must be at least 2x2 blocks"));
 			return 0;
 		}
-		if (size[0] > JabConfig.get().maxScreenSize() || size[1] > JabConfig.get().maxScreenSize()) {
+		if (size.width() > JabConfig.get().maxScreenSize() || size.height() > JabConfig.get().maxScreenSize()) {
 			source.sendFailure(Component.literal("Screen too large (max " + JabConfig.get().maxScreenSize() + " blocks)"));
 			return 0;
 		}
 
-		BlockPos err = Multiblock.check(world, originPos, size[0], size[1], look.side());
+		BlockPos err = Multiblock.check(world, originPos, size.width(), size.height(), look.side());
 		if (err != null) {
 			source.sendFailure(Component.literal("Screen wall has a missing block at " + err.toShortString()));
 			return 0;
@@ -83,14 +83,14 @@ public class JabCommand {
 				return 0;
 			}
 			addDisplay(sbe, look.side(), size, url);
-			source.sendSuccess(() -> Component.literal("Created display (" + size[0] + "x" + size[1] + ")"), true);
+			source.sendSuccess(() -> Component.literal("Created display (" + size.width() + "x" + size.height() + ")"), true);
 			return 1;
 		}
 
 		world.setBlock(originPos, world.getBlockState(originPos).setValue(ScreenBlock.HAS_TE, true), 3);
 		if (world.getBlockEntity(originPos) instanceof ScreenBlockEntity sbe) {
 			addDisplay(sbe, look.side(), size, url);
-			source.sendSuccess(() -> Component.literal("Created display (" + size[0] + "x" + size[1] + ")"), true);
+			source.sendSuccess(() -> Component.literal("Created display (" + size.width() + "x" + size.height() + ")"), true);
 			return 1;
 		}
 
@@ -98,8 +98,8 @@ public class JabCommand {
 		return 0;
 	}
 
-	private static void addDisplay(ScreenBlockEntity sbe, BlockSide side, int[] size, String url) {
-		sbe.addScreen(side, size[0], size[1]);
+	private static void addDisplay(ScreenBlockEntity sbe, BlockSide side, Multiblock.WallSize size, String url) {
+		sbe.addScreen(side, size.width(), size.height());
 		if (url != null) sbe.setUrl(side, url);
 	}
 
@@ -126,7 +126,7 @@ public class JabCommand {
 		String url = StringArgumentType.getString(ctx, "url");
 
 		if (!UrlUtil.isValidLength(url)) {
-			source.sendFailure(Component.literal("URL too long (max 2048 characters)"));
+			source.sendFailure(Component.literal("URL too long (max " + UrlUtil.MAX_URL_LENGTH + " characters)"));
 			return 0;
 		}
 
@@ -192,15 +192,15 @@ public class JabCommand {
 		source.sendSuccess(() -> Component.literal("§eLooked at: §f" + cast.hitPos().toShortString() + " §7side=" + side), false);
 		source.sendSuccess(() -> Component.literal("§eBlock: §f" + world.getBlockState(cast.hitPos()).getBlock()), false);
 
-		int[] fromHit = Multiblock.measure(world, cast.hitPos(), side);
-		source.sendSuccess(() -> Component.literal("§eFrom-hit wall size: §f" + fromHit[0] + "x" + fromHit[1]), false);
+		Multiblock.WallSize fromHit = Multiblock.measure(world, cast.hitPos(), side);
+		source.sendSuccess(() -> Component.literal("§eFrom-hit wall size: §f" + fromHit.width() + "x" + fromHit.height()), false);
 
 		source.sendSuccess(() -> Component.literal("§eOrigin: §f" + cast.origin().toShortString()), false);
 
-		int[] size = Multiblock.measure(world, cast.origin(), side);
-		source.sendSuccess(() -> Component.literal("§eWall size: §f" + size[0] + "x" + size[1]), false);
+		Multiblock.WallSize size = Multiblock.measure(world, cast.origin(), side);
+		source.sendSuccess(() -> Component.literal("§eWall size: §f" + size.width() + "x" + size.height()), false);
 
-		BlockPos gap = Multiblock.check(world, cast.origin(), size[0], size[1], side);
+		BlockPos gap = Multiblock.check(world, cast.origin(), size.width(), size.height(), side);
 		if (gap != null) {
 			source.sendSuccess(() -> Component.literal("§cGap at: §f" + gap.toShortString()), false);
 		} else {

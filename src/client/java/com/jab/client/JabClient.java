@@ -24,8 +24,15 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.level.block.state.BlockState;
+
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Set;
 
 public class JabClient implements ClientModInitializer {
 	@Override
@@ -61,23 +68,45 @@ public class JabClient implements ClientModInitializer {
 
 		// Right-clicking a screen wall opens the browser view.
 		UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
-			if (world.isClientSide()
-					&& hand == InteractionHand.MAIN_HAND
-					&& player.getMainHandItem().isEmpty()
-					&& world.getBlockState(hitResult.getBlockPos()).getBlock() == ModBlocks.SCREEN_BLOCK) {
-				BlockSide side = BlockSide.fromDirection(hitResult.getDirection());
-				BlockPos origin = Multiblock.resolveOrigin(world, hitResult.getBlockPos(), side);
-				if (world.getBlockEntity(origin) instanceof ScreenBlockEntity sbe) {
-					ScreenData scr = sbe.getScreen(side);
-					if (scr != null) {
-						ScreenBrowserManager.sync(origin, sbe.getScreens());
-						Minecraft.getInstance().setScreen(
-								new BrowserScreen(origin, side.ordinal(), scr.url()));
-						return InteractionResult.SUCCESS;
-					}
+			if (!world.isClientSide()
+					|| hand != InteractionHand.MAIN_HAND
+					|| !player.getItemInHand(hand).isEmpty()
+					|| !world.getBlockState(hitResult.getBlockPos()).is(ModBlocks.SCREEN_BLOCK)) {
+				return InteractionResult.PASS;
+			}
+			BlockSide side = BlockSide.fromDirection(hitResult.getDirection());
+			BlockPos origin = findScreenOrigin(world, hitResult.getBlockPos(), side);
+			if (origin != null && world.getBlockEntity(origin) instanceof ScreenBlockEntity sbe) {
+				ScreenData scr = sbe.getScreen(side);
+				if (scr != null) {
+					ScreenBrowserManager.sync(origin, sbe.getScreens());
+					Minecraft.getInstance().setScreen(new BrowserScreen(origin, side, scr.url()));
+					return InteractionResult.SUCCESS;
 				}
 			}
 			return InteractionResult.PASS;
 		});
+	}
+
+	private static BlockPos findScreenOrigin(net.minecraft.world.level.Level world, BlockPos hitPos, BlockSide side) {
+		BlockPos direct = Multiblock.resolveOrigin(world, hitPos, side);
+		if (world.getBlockEntity(direct) instanceof ScreenBlockEntity sbe && sbe.getScreen(side) != null) return direct;
+		// Fallback: flood-fill wall for any origin that actually has the screen
+		Set<BlockPos> visited = new HashSet<>();
+		Queue<BlockPos> queue = new LinkedList<>();
+		int maxArea = com.jab.config.JabConfig.get().maxScreenSize() * com.jab.config.JabConfig.get().maxScreenSize();
+		queue.add(hitPos);
+		while (!queue.isEmpty()) {
+			BlockPos cur = queue.poll();
+			if (!visited.add(cur)) continue;
+			if (visited.size() > maxArea) break;
+			BlockState curState = world.getBlockState(cur);
+			if (!curState.is(ModBlocks.SCREEN_BLOCK)) continue;
+			if (curState.getValue(com.jab.block.ScreenBlock.HAS_TE) && world.getBlockEntity(cur) instanceof ScreenBlockEntity sbe) {
+				if (sbe.getScreen(side) != null) return cur;
+			}
+			for (Direction dir : Direction.values()) queue.add(cur.relative(dir));
+		}
+		return direct;
 	}
 }

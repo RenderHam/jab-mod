@@ -26,12 +26,17 @@ public record ScreenActionC2SPacket(BlockPos pos, BlockSide side, String url) im
 
 	public static final StreamCodec<ByteBuf, ScreenActionC2SPacket> CODEC = StreamCodec.composite(
 			BlockPos.STREAM_CODEC, ScreenActionC2SPacket::pos,
-			ByteBufCodecs.VAR_INT, p -> p.side.ordinal(),
+			ByteBufCodecs.STRING_UTF8, p -> p.side.name(),
 			ByteBufCodecs.STRING_UTF8, ScreenActionC2SPacket::url,
-			(pos, side, url) -> new ScreenActionC2SPacket(
-					pos,
-					BlockSide.values()[Math.clamp(side, 0, BlockSide.values().length - 1)],
-					url)
+			(pos, side, url) -> {
+				BlockSide sideEnum;
+				try {
+					sideEnum = BlockSide.valueOf(side);
+				} catch (IllegalArgumentException e) {
+					sideEnum = BlockSide.BOTTOM;
+				}
+				return new ScreenActionC2SPacket(pos, sideEnum, url);
+			}
 	);
 
 	@Override

@@ -96,7 +96,7 @@ public class ScreenData {
 
 	public CompoundTag serialize() {
 		CompoundTag tag = new CompoundTag();
-		tag.putByte("Side", (byte) side.ordinal());
+		tag.putString("Side", side.name());
 		tag.putInt("Width", width);
 		tag.putInt("Height", height);
 		tag.putInt("ResX", resolutionX);
@@ -108,8 +108,12 @@ public class ScreenData {
 
 	public static ScreenData deserialize(CompoundTag tag) {
 		ScreenData data = new ScreenData();
-		int sideOrd = tag.getByteOr("Side", (byte) 0);
-		data.side = BlockSide.values()[Math.clamp(sideOrd, 0, BlockSide.values().length - 1)];
+		String sideName = tag.getStringOr("Side", "BOTTOM");
+		try {
+			data.side = BlockSide.valueOf(sideName);
+		} catch (IllegalArgumentException e) {
+			data.side = BlockSide.BOTTOM;
+		}
 		data.width = tag.getIntOr("Width", 1);
 		data.height = tag.getIntOr("Height", 1);
 		data.resolutionX = Math.max(1, tag.getIntOr("ResX", JabConfig.get().defaultResolutionX()));

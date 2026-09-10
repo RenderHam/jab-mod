@@ -9,6 +9,8 @@ public class Multiblock {
 	private static final int MAX_ORIGIN_STEPS = 32;
 	private static final int MAX_MEASURE_STEPS = 64;
 
+	public record WallSize(int width, int height) {}
+
 	/**
 	 * Resolves the origin block for a screen block hit by a ray.
 	 * The caller must verify the hit block is a screen block before calling.
@@ -42,7 +44,7 @@ public class Multiblock {
 		}
 	}
 
-	public static int[] measure(Level world, BlockPos origin, BlockSide side) {
+	public static WallSize measure(Level world, BlockPos origin, BlockSide side) {
 		int width = 0, height = 0;
 		BlockPos.MutableBlockPos bp = new BlockPos.MutableBlockPos();
 		bp.set(origin);
@@ -55,7 +57,7 @@ public class Multiblock {
 			bp.move(side.rightX, side.rightY, side.rightZ);
 			width++;
 		} while (width < MAX_MEASURE_STEPS && world.getBlockState(bp).getBlock() == ModBlocks.SCREEN_BLOCK);
-		return new int[]{width, height};
+		return new WallSize(width, height);
 	}
 
 	/**

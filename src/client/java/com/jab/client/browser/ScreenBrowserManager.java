@@ -42,6 +42,12 @@ public class ScreenBrowserManager {
 		return pos.asLong();
 	}
 
+	private static void destroyBrowserWithCleanup(BlockPos pos, BlockSide side, RinkuBrowser browser, String reason) {
+		logDestroy(pos, side, browser, reason);
+		BrowserManager.destroyBrowser(browser);
+		AudioModeHandler.remove(pos, side);
+	}
+
 	private static void logDestroy(BlockPos pos, BlockSide side, RinkuBrowser browser, String reason) {
 		JabMod.LOGGER.info("Closed browser id={} pos={} side={} url={} reason={}",
 				browser.getIdentifier(), pos, side, browser.getURL(), reason);
@@ -49,7 +55,7 @@ public class ScreenBrowserManager {
 
 	private static boolean isGuiOpen(BlockPos pos, BlockSide side) {
 		net.minecraft.client.gui.screens.Screen screen = Minecraft.getInstance().screen;
-		return screen instanceof BrowserScreen bs && bs.getPos().equals(pos) && bs.getSideOrdinal() == side.ordinal();
+		return screen instanceof BrowserScreen bs && bs.getPos().equals(pos) && bs.getSide() == side;
 	}
 
 	private static double distanceSqToPlayer(BlockPos pos) {
@@ -107,8 +113,7 @@ public class ScreenBrowserManager {
 			while (iter.hasNext()) {
 				var entry = iter.next();
 				if (!newScreens.containsKey(entry.getKey())) {
-					logDestroy(pos, entry.getKey(), entry.getValue(), "screen-removed");
-					BrowserManager.destroyBrowser(entry.getValue());
+					destroyBrowserWithCleanup(pos, entry.getKey(), entry.getValue(), "screen-removed");
 					iter.remove();
 					destroyed = true;
 				}
@@ -157,10 +162,8 @@ public class ScreenBrowserManager {
 				RinkuBrowser browser = alive != null ? alive.get(side) : null;
 				if (browser != null) {
 					if (!guiOpen && !withinUnload) {
-						logDestroy(pos, side, browser, "distance-unload");
-						BrowserManager.destroyBrowser(browser);
+						destroyBrowserWithCleanup(pos, side, browser, "distance-unload");
 						alive.remove(side);
-						AudioModeHandler.remove(pos, side);
 						if (alive.isEmpty()) browserMap.remove(entry.getKey());
 						destroyed = true;
 					}
@@ -221,9 +224,7 @@ public class ScreenBrowserManager {
 			Map<BlockSide, RinkuBrowser> alive = browserMap.remove(entry.getKey());
 			if (alive != null) {
 				for (var bEntry : alive.entrySet()) {
-					logDestroy(pos, bEntry.getKey(), bEntry.getValue(), "chunk-unload");
-					BrowserManager.destroyBrowser(bEntry.getValue());
-					AudioModeHandler.remove(pos, bEntry.getKey());
+					destroyBrowserWithCleanup(pos, bEntry.getKey(), bEntry.getValue(), "chunk-unload");
 					entry.getValue().remove(bEntry.getKey());
 					destroyed = true;
 				}

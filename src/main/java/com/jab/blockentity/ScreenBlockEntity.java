@@ -34,6 +34,7 @@ public class ScreenBlockEntity extends BlockEntity {
 	private final EnumMap<BlockSide, ScreenData> screens = new EnumMap<>(BlockSide.class);
 	private List<ScreenData> screensSnapshot = List.of();
 	private boolean removed = false;
+	private AABB cachedBoundingBox = null;
 
 	public ScreenBlockEntity(BlockPos pos, BlockState state) {
 		super(ModBlockEntities.SCREEN_BLOCK_ENTITY, pos, state);
@@ -169,10 +170,15 @@ public class ScreenBlockEntity extends BlockEntity {
 
 	private void rebuildScreensSnapshot() {
 		screensSnapshot = List.copyOf(screens.values());
+		cachedBoundingBox = null;
 	}
 
 	public AABB getRenderBoundingBox() {
-		if (screens.isEmpty()) return new AABB(worldPosition);
+		if (cachedBoundingBox != null) return cachedBoundingBox;
+		if (screens.isEmpty()) {
+			cachedBoundingBox = new AABB(worldPosition);
+			return cachedBoundingBox;
+		}
 		AABB box = new AABB(worldPosition);
 		for (ScreenData s : screens.values()) {
 			BlockSide side = s.side();
@@ -183,6 +189,7 @@ public class ScreenBlockEntity extends BlockEntity {
 			Vec3 c2 = Vec3.atLowerCornerOf(worldPosition);
 			box = box.minmax(new AABB(c1, c2));
 		}
+		cachedBoundingBox = box;
 		return box;
 	}
 }
