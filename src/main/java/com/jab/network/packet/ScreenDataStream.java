@@ -15,22 +15,9 @@ public class ScreenDataStream {
 			ByteBufCodecs.VAR_INT, ScreenData::height,
 			ByteBufCodecs.VAR_INT, ScreenData::resolutionX,
 			ByteBufCodecs.VAR_INT, ScreenData::resolutionY,
-			ByteBufCodecs.STRING_UTF8, ScreenData::url,
+			ByteBufCodecs.stringUtf8(2048), ScreenData::url,
 			ByteBufCodecs.STRING_UTF8, d -> d.audioMode().name(),
-		(side, w, h, rx, ry, url, am) -> {
-			BlockSide sideEnum;
-			try {
-				sideEnum = BlockSide.valueOf(side);
-			} catch (IllegalArgumentException e) {
-				sideEnum = BlockSide.BOTTOM;
-			}
-			ScreenData.AudioMode audioMode;
-			try {
-				audioMode = ScreenData.AudioMode.valueOf(am);
-			} catch (IllegalArgumentException e) {
-				audioMode = ScreenData.AudioMode.GLOBAL;
-			}
-			return ScreenData.decode(sideEnum, w, h, rx, ry, url, audioMode);
-		}
+		(side, w, h, rx, ry, url, am) -> ScreenData.decode(
+				BlockSide.lenientValueOf(side), w, h, rx, ry, url, ScreenData.AudioMode.lenientValueOf(am))
 	);
 }

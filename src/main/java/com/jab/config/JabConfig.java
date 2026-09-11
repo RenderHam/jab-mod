@@ -5,6 +5,7 @@ import com.jab.JabMod;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 import net.fabricmc.loader.api.FabricLoader;
@@ -60,15 +61,19 @@ public class JabConfig {
 		String defaultUrl = DEFAULT_URL;
 
 		if (configFile.exists()) {
-			try (FileReader reader = new FileReader(configFile)) {
+			try (FileReader reader = new FileReader(configFile, StandardCharsets.UTF_8)) {
 				Properties props = new Properties();
 				props.load(reader);
 				maxScreenSize = Math.min(32, Math.max(2, parseInt(props, "maxScreenSize", 8)));
 				defaultResolutionX = Math.min(7680, Math.max(1, parseInt(props, "defaultResolutionX", 1920)));
 				defaultResolutionY = Math.min(4320, Math.max(1, parseInt(props, "defaultResolutionY", 1080)));
 				loadDistance = Math.min(128, Math.max(4, parseInt(props, "loadDistance", 32)));
-				unloadDistance = Math.min(128, Math.max(loadDistance, parseInt(props, "unloadDistance", 48)));
-				maxBrowsers = Math.max(1, parseInt(props, "maxBrowsers", 16));
+				int rawUnload = parseInt(props, "unloadDistance", 48);
+				unloadDistance = Math.min(128, Math.max(loadDistance, rawUnload));
+				if (rawUnload < loadDistance) {
+					JabMod.LOGGER.warn("Config unloadDistance ({}) < loadDistance ({}), clamped to {}", rawUnload, loadDistance, unloadDistance);
+				}
+				maxBrowsers = Math.min(32, Math.max(1, parseInt(props, "maxBrowsers", 16)));
 				String url = props.getProperty("defaultUrl", DEFAULT_URL);
 				defaultUrl = (url == null || url.isBlank()) ? DEFAULT_URL : url.trim();
 			} catch (Exception e) {
@@ -84,8 +89,8 @@ public class JabConfig {
 	public static void save() {
 		if (INSTANCE == null) return;
 		try {
-			configFile.getParentFile().mkdirs();
-			try (FileWriter writer = new FileWriter(configFile)) {
+			if (configFile.getParentFile() != null) configFile.getParentFile().mkdirs();
+			try (FileWriter writer = new FileWriter(configFile, StandardCharsets.UTF_8)) {
 				Properties props = new Properties();
 				props.setProperty("maxScreenSize", String.valueOf(INSTANCE.maxScreenSize));
 				props.setProperty("defaultResolutionX", String.valueOf(INSTANCE.defaultResolutionX));
@@ -105,6 +110,7 @@ public class JabConfig {
 		try {
 			return Integer.parseInt(props.getProperty(key, String.valueOf(def)));
 		} catch (NumberFormatException e) {
+			JabMod.LOGGER.warn("Invalid config value for '{}': '{}', using default {}", key, props.getProperty(key), def);
 			return def;
 		}
 	}

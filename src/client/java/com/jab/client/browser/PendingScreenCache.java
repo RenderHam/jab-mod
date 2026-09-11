@@ -2,7 +2,6 @@ package com.jab.client.browser;
 
 import com.jab.blockentity.ScreenBlockEntity;
 import com.jab.data.ScreenData;
-import com.jab.util.BlockSide;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;

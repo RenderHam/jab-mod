@@ -13,7 +13,7 @@ the origin block of each wall. Commands (`/jab create`, `/jab url`, `/jab audio`
 server-side and broadcast state to clients. The server never renders anything.
 
 **Client** receives screen state over the network, creates Chromium browser instances via
-Rinku, and renders their textures onto the wall blocks (jab block). Right-clicking with an empty hand
+Rinku, and renders their textures onto the wall blocks (jab screen block). Right-clicking with an empty hand
 opens a browser GUI with a URL bar and full mouse/keyboard forwarding and all players see the same page in real-time. Browsing is session-only:
 no cache, cookies wiped on every browser destroy.
 

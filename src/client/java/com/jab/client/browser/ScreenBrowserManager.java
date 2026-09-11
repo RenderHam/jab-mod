@@ -64,6 +64,20 @@ public class ScreenBrowserManager {
 		return mc.player.distanceToSqr(Vec3.atCenterOf(pos));
 	}
 
+	private static Vec3 wallCenter(BlockPos origin, ScreenData screen) {
+		BlockSide side = screen.side();
+		double cx = origin.getX() + 0.5 + side.rightX * screen.width() * 0.5 + side.upX * screen.height() * 0.5 + side.faceX * 0.5;
+		double cy = origin.getY() + 0.5 + side.rightY * screen.width() * 0.5 + side.upY * screen.height() * 0.5 + side.faceY * 0.5;
+		double cz = origin.getZ() + 0.5 + side.rightZ * screen.width() * 0.5 + side.upZ * screen.height() * 0.5 + side.faceZ * 0.5;
+		return new Vec3(cx, cy, cz);
+	}
+
+	private static double distanceSqToWall(BlockPos origin, ScreenData screen) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.player == null || mc.level == null) return Double.MAX_VALUE;
+		return mc.player.distanceToSqr(wallCenter(origin, screen));
+	}
+
 	private static int activeBrowserCount() {
 		int count = 0;
 		for (var m : browserMap.values()) count += m.size();
@@ -78,11 +92,15 @@ public class ScreenBrowserManager {
 		if (activeBrowserCount() >= JabConfig.get().maxBrowsers()) {
 			JabMod.LOGGER.warn("Browser cap reached ({}), but GUI is open — creating anyway", JabConfig.get().maxBrowsers());
 		}
-		doCreate(pos, side, s);
+		doCreate(pos, side, s, true);
 	}
 
 	private static void doCreate(BlockPos pos, BlockSide side, ScreenData s) {
-		if (activeBrowserCount() >= JabConfig.get().maxBrowsers()) {
+		doCreate(pos, side, s, false);
+	}
+
+	private static void doCreate(BlockPos pos, BlockSide side, ScreenData s, boolean force) {
+		if (!force && activeBrowserCount() >= JabConfig.get().maxBrowsers()) {
 			long now = System.currentTimeMillis();
 			if (now - capWarnTime > 10_000) {
 				JabMod.LOGGER.warn("Browser cap reached ({}): parking screen at {} side={} until capacity frees up",
@@ -135,11 +153,22 @@ public class ScreenBrowserManager {
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.player == null || mc.level == null) return;
 
+		int maxBrowsers = JabConfig.get().maxBrowsers();
+		int loadDistSq = JabConfig.get().loadDistance() * JabConfig.get().loadDistance();
+		int unloadDistSq = JabConfig.get().unloadDistance() * JabConfig.get().unloadDistance();
+		var curScreen = Minecraft.getInstance().screen;
+		boolean isGuiOpenCached = curScreen instanceof BrowserScreen;
+
 		int created = 0;
 		while (!creationQueue.isEmpty() && created < MAX_CREATIONS_PER_TICK) {
-			CreationRequest req = creationQueue.poll();
-			if (activeBrowserCount() >= JabConfig.get().maxBrowsers()) break;
-			if (!desiredScreens.containsKey(key(req.pos()))) continue;
+			if (activeBrowserCount() >= maxBrowsers) break;
+			CreationRequest req = creationQueue.peek();
+			if (req == null) break;
+			if (!desiredScreens.containsKey(key(req.pos()))) {
+				creationQueue.poll();
+				continue;
+			}
+			creationQueue.poll();
 			doCreate(req.pos(), req.side(), req.screen());
 			created++;
 		}
@@ -151,13 +180,13 @@ public class ScreenBrowserManager {
 			BlockPos pos = BlockPos.of(entry.getKey());
 			Map<BlockSide, ScreenData> screens = entry.getValue();
 			Map<BlockSide, RinkuBrowser> alive = browserMap.get(entry.getKey());
-			double d2 = distanceSqToPlayer(pos);
-			boolean withinUnload = d2 <= (double) JabConfig.get().unloadDistance() * JabConfig.get().unloadDistance();
-			boolean inRange = d2 <= (double) JabConfig.get().loadDistance() * JabConfig.get().loadDistance();
 			for (var sEntry : screens.entrySet()) {
 				BlockSide side = sEntry.getKey();
 				ScreenData screen = sEntry.getValue();
-				boolean guiOpen = isGuiOpen(pos, side);
+				boolean guiOpen = isGuiOpenCached && curScreen instanceof BrowserScreen bs && bs.getPos().equals(pos) && bs.getSide() == side;
+				double d2 = distanceSqToWall(pos, screen);
+				boolean withinUnload = d2 <= (double) unloadDistSq;
+				boolean inRange = d2 <= (double) loadDistSq;
 
 				RinkuBrowser browser = alive != null ? alive.get(side) : null;
 				if (browser != null) {

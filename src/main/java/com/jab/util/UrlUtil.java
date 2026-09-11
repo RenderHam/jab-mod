@@ -1,7 +1,5 @@
 package com.jab.util;
 
-import com.jab.config.JabConfig;
-
 /**
  * URL sanitization and validation for screen displays.
  */

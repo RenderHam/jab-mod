@@ -8,7 +8,15 @@ import net.minecraft.nbt.CompoundTag;
 public class ScreenData {
 	public enum AudioMode {
 		GLOBAL,
-		DYNAMIC
+		DYNAMIC;
+
+		public static AudioMode lenientValueOf(String name) {
+			try {
+				return AudioMode.valueOf(name);
+			} catch (IllegalArgumentException e) {
+				return GLOBAL;
+			}
+		}
 	}
 
 	private BlockSide side = BlockSide.BOTTOM;
@@ -36,10 +44,10 @@ public class ScreenData {
 	public static ScreenData decode(BlockSide side, int width, int height, int resX, int resY, String url, AudioMode audioMode) {
 		ScreenData data = new ScreenData();
 		data.side = side;
-		data.width = width;
-		data.height = height;
-		data.resolutionX = Math.max(1, resX);
-		data.resolutionY = Math.max(1, resY);
+		data.width = Math.clamp(width, 1, 32);
+		data.height = Math.clamp(height, 1, 32);
+		data.resolutionX = Math.clamp(resX, 1, 7680);
+		data.resolutionY = Math.clamp(resY, 1, 4320);
 		data.url = url != null ? url : "";
 		data.audioMode = audioMode;
 		return data;
@@ -108,23 +116,13 @@ public class ScreenData {
 
 	public static ScreenData deserialize(CompoundTag tag) {
 		ScreenData data = new ScreenData();
-		String sideName = tag.getStringOr("Side", "BOTTOM");
-		try {
-			data.side = BlockSide.valueOf(sideName);
-		} catch (IllegalArgumentException e) {
-			data.side = BlockSide.BOTTOM;
-		}
-		data.width = tag.getIntOr("Width", 1);
-		data.height = tag.getIntOr("Height", 1);
-		data.resolutionX = Math.max(1, tag.getIntOr("ResX", JabConfig.get().defaultResolutionX()));
-		data.resolutionY = Math.max(1, tag.getIntOr("ResY", JabConfig.get().defaultResolutionY()));
+		data.side = BlockSide.lenientValueOf(tag.getStringOr("Side", "BOTTOM"));
+		data.width = Math.clamp(tag.getIntOr("Width", 1), 1, 32);
+		data.height = Math.clamp(tag.getIntOr("Height", 1), 1, 32);
+		data.resolutionX = Math.clamp(tag.getIntOr("ResX", JabConfig.get().defaultResolutionX()), 1, 7680);
+		data.resolutionY = Math.clamp(tag.getIntOr("ResY", JabConfig.get().defaultResolutionY()), 1, 4320);
 		data.url = tag.getStringOr("Url", "");
-		String am = tag.getStringOr("AudioMode", "GLOBAL");
-		try {
-			data.audioMode = AudioMode.valueOf(am);
-		} catch (IllegalArgumentException e) {
-			data.audioMode = AudioMode.GLOBAL;
-		}
+		data.audioMode = AudioMode.lenientValueOf(tag.getStringOr("AudioMode", "GLOBAL"));
 		return data;
 	}
 }

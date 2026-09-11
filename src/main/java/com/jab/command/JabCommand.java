@@ -4,7 +4,6 @@ import com.jab.block.ScreenBlock;
 import com.jab.blockentity.ScreenBlockEntity;
 import com.jab.config.JabConfig;
 import com.jab.data.ScreenData;
-import com.jab.registry.ModBlocks;
 import com.jab.util.BlockSide;
 import com.jab.util.Multiblock;
 import com.jab.util.UrlUtil;
@@ -123,7 +122,8 @@ public class JabCommand {
 		var source = ctx.getSource();
 		var player = source.getPlayerOrException();
 		var world = player.level();
-		String url = StringArgumentType.getString(ctx, "url");
+		String raw = StringArgumentType.getString(ctx, "url");
+		String url = UrlUtil.sanitize(raw);
 
 		if (!UrlUtil.isValidLength(url)) {
 			source.sendFailure(Component.literal("URL too long (max " + UrlUtil.MAX_URL_LENGTH + " characters)"));

@@ -41,6 +41,14 @@ public enum BlockSide {
 		};
 	}
 
+	public static BlockSide lenientValueOf(String name) {
+		try {
+			return BlockSide.valueOf(name);
+		} catch (IllegalArgumentException e) {
+			return BOTTOM;
+		}
+	}
+
 	public Direction toDirection() {
 		return switch (this) {
 			case BOTTOM -> Direction.DOWN;

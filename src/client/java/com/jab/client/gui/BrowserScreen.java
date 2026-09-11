@@ -32,7 +32,6 @@ import org.lwjgl.glfw.GLFW;
 public class BrowserScreen extends Screen {
 	private final BlockPos pos;
 	private final BlockSide side;
-	private String currentUrl;
 	private String syncedUrl;
 	private RinkuBrowser browser;
 	private EditBox urlBox;
@@ -48,8 +47,7 @@ public class BrowserScreen extends Screen {
 		super(Component.literal("JAB - Browser"));
 		this.pos = pos;
 		this.side = side;
-		this.currentUrl = currentUrl != null ? currentUrl : "about:blank";
-		this.syncedUrl = this.currentUrl;
+		this.syncedUrl = currentUrl != null ? currentUrl : "about:blank";
 	}
 
 	public BlockPos getPos() {
@@ -123,8 +121,8 @@ public class BrowserScreen extends Screen {
 		int padding = 4;
 		urlBox = new EditBox(font, padding, (TOOLBAR_HEIGHT - 20) / 2, width - padding * 2, 20, Component.literal("URL"));
 		urlBox.setMaxLength(UrlUtil.MAX_URL_LENGTH);
-		urlBox.setValue(currentUrl);
-		urlBox.setCursorPosition(currentUrl.length());
+		urlBox.setValue(syncedUrl);
+		urlBox.setCursorPosition(syncedUrl.length());
 		urlBox.setBordered(true);
 		urlBox.setVisible(true);
 		addRenderableWidget(urlBox);
@@ -136,7 +134,6 @@ public class BrowserScreen extends Screen {
 		String current = browser.getURL();
 		if (current == null || current.equals(syncedUrl)) return;
 		syncedUrl = current;
-		currentUrl = current;
 		urlBox.setValue(current);
 		urlBox.setCursorPosition(current.length());
 		ClientNetworking.sendUrl(pos, side, current);
@@ -268,7 +265,7 @@ public class BrowserScreen extends Screen {
 			return urlBox.keyPressed(event);
 		}
 
-		if (event.modifiers() == GLFW.GLFW_MOD_CONTROL && event.key() == GLFW.GLFW_KEY_L) {
+		if ((event.modifiers() & GLFW.GLFW_MOD_CONTROL) != 0 && event.key() == GLFW.GLFW_KEY_L) {
 			if (urlBox != null) {
 				urlBox.setFocused(true);
 				urlBox.setCursorPosition(urlBox.getValue().length());
@@ -309,7 +306,6 @@ public class BrowserScreen extends Screen {
 	private void navigateToUrl(String url) {
 		if (url == null || url.isEmpty()) return;
 		url = UrlUtil.sanitize(url);
-		currentUrl = url;
 		syncedUrl = url;
 		if (browser != null) {
 			browser.loadURL(url);

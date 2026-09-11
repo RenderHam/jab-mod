@@ -7,7 +7,6 @@ import com.jab.registry.ModBlocks;
 import com.mojang.serialization.MapCodec;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -24,10 +23,6 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty;
 
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Set;
 import java.util.function.BiConsumer;
 
 /**
@@ -84,32 +79,32 @@ public class ScreenBlock extends BaseEntityBlock {
 		super.onExplosionHit(state, level, pos, explosion, dropConsumer);
 	}
 
+	@Override
+	protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
+		if (state.is(ModBlocks.SCREEN_BLOCK)) {
+			if (state.getValue(HAS_TE)) {
+				BlockEntity be = level.getBlockEntity(pos);
+				if (be instanceof ScreenBlockEntity sbe) sbe.onDestroy();
+			} else {
+				destroyOriginForWallContaining(level, pos);
+			}
+		}
+		super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
+	}
+
 	/**
 	 * Breaking any non-origin block of a wall must also kill the display on the origin,
 	 * otherwise the wall would be stuck in a broken state. Flood-fills from the broken
 	 * block until it reaches the origin block entity.
 	 */
 	private static void destroyOriginForWallContaining(Level level, BlockPos brokenPos) {
-		Set<BlockPos> visited = new HashSet<>();
-		Queue<BlockPos> queue = new LinkedList<>();
-		int maxArea = JabConfig.get().maxScreenSize() * JabConfig.get().maxScreenSize();
-		queue.add(brokenPos);
-		while (!queue.isEmpty()) {
-			BlockPos cur = queue.poll();
-			if (!visited.add(cur)) continue;
-			if (visited.size() > maxArea) break;
-			BlockState curState = level.getBlockState(cur);
-			if (!curState.is(ModBlocks.SCREEN_BLOCK)) continue;
-			if (curState.getValue(HAS_TE)) {
-				BlockEntity be = level.getBlockEntity(cur);
-				if (be instanceof ScreenBlockEntity sbe) {
-					sbe.onDestroy();
-					return;
-				}
-			}
-			for (Direction dir : Direction.values()) {
-				queue.add(cur.relative(dir));
-			}
+		BlockPos origin = com.jab.util.Multiblock.floodFind(level, brokenPos, pos -> {
+			BlockState s = level.getBlockState(pos);
+			if (!s.getValue(HAS_TE)) return false;
+			return level.getBlockEntity(pos) instanceof ScreenBlockEntity;
+		});
+		if (origin != null && level.getBlockEntity(origin) instanceof ScreenBlockEntity sbe) {
+			sbe.onDestroy();
 		}
 	}
 }

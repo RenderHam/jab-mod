@@ -33,7 +33,6 @@ import java.util.List;
 public class ScreenBlockEntity extends BlockEntity {
 	private final EnumMap<BlockSide, ScreenData> screens = new EnumMap<>(BlockSide.class);
 	private List<ScreenData> screensSnapshot = List.of();
-	private boolean removed = false;
 	private AABB cachedBoundingBox = null;
 
 	public ScreenBlockEntity(BlockPos pos, BlockState state) {
@@ -121,19 +120,23 @@ public class ScreenBlockEntity extends BlockEntity {
 	}
 
 	public void onDestroy() {
-		screens.clear();
-		rebuildScreensSnapshot();
-		setChanged();
-		if (!removed) sync();
+		clearAndBroadcastEmpty();
 	}
 
 	@Override
 	public void setRemoved() {
-		removed = true;
-		if (level instanceof ServerLevel && !screens.isEmpty()) {
-			onDestroy();
+		if (level instanceof ServerLevel) {
+			clearAndBroadcastEmpty();
 		}
 		super.setRemoved();
+	}
+
+	private void clearAndBroadcastEmpty() {
+		if (screens.isEmpty()) return;
+		screens.clear();
+		rebuildScreensSnapshot();
+		setChanged();
+		broadcast(new ScreenStateS2CPacket(worldPosition, List.of()));
 	}
 
 	@Override

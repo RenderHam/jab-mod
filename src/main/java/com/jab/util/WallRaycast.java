@@ -26,13 +26,13 @@ public final class WallRaycast {
 	 */
 	public static Result raycast(Player player, Level world) {
 		var hit = player.pick(REACH_DISTANCE, UNKNOWN_PITCH, false);
-		if (hit.getType() != HitResult.Type.BLOCK) return null;
+		if (!(hit instanceof BlockHitResult bhr)) return null;
+		if (bhr.getType() != HitResult.Type.BLOCK) return null;
 
-		BlockHitResult bhr = (BlockHitResult) hit;
 		BlockSide side = BlockSide.fromDirection(bhr.getDirection());
 		BlockPos pos = bhr.getBlockPos();
 
-		if (world.getBlockState(pos).getBlock() != ModBlocks.SCREEN_BLOCK) return null;
+		if (!world.getBlockState(pos).is(ModBlocks.SCREEN_BLOCK)) return null;
 
 		BlockPos.MutableBlockPos origin = pos.mutable();
 		Multiblock.findOrigin(world, origin, side);

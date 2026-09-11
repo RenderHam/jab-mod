@@ -41,6 +41,15 @@ public class AudioModeHandler {
 				bySide.putIfAbsent(s.side(), new AudioState());
 			}
 		}
+		// Restore volume for sides that left DYNAMIC
+		for (BlockSide side : new HashSet<>(bySide.keySet())) {
+			if (!keep.contains(side)) {
+				RinkuBrowser browser = ScreenBrowserManager.getBrowser(pos, side);
+				if (browser != null) {
+					browser.executeJavaScript("document.querySelectorAll('video,audio').forEach(function(e){e.volume=1.0})", "", 0);
+				}
+			}
+		}
 		bySide.keySet().retainAll(keep);
 		if (bySide.isEmpty()) dynamicScreens.remove(k);
 	}
@@ -52,7 +61,13 @@ public class AudioModeHandler {
 		} else {
 			Map<BlockSide, AudioState> byPos = dynamicScreens.get(k);
 			if (byPos != null) {
-				byPos.remove(screen.side());
+				if (byPos.remove(screen.side()) != null) {
+					// Restore volume to 1.0 when leaving DYNAMIC — otherwise page stays ducked.
+					RinkuBrowser browser = ScreenBrowserManager.getBrowser(pos, screen.side());
+					if (browser != null) {
+						browser.executeJavaScript("document.querySelectorAll('video,audio').forEach(function(e){e.volume=1.0})", "", 0);
+					}
+				}
 				if (byPos.isEmpty()) dynamicScreens.remove(k);
 			}
 		}
@@ -84,18 +99,28 @@ public class AudioModeHandler {
 		Vec3 playerCenter = mc.player.getEyePosition();
 
 		for (var entry : dynamicScreens.entrySet()) {
-			BlockPos pos = BlockPos.of(entry.getKey());
-			Vec3 center = Vec3.atCenterOf(pos);
+			BlockPos origin = BlockPos.of(entry.getKey());
 			for (var sideEntry : entry.getValue().entrySet()) {
+				BlockSide side = sideEntry.getKey();
 				AudioState state = sideEntry.getValue();
+				ScreenData screen = ScreenBrowserManager.getDesiredScreen(origin, side);
+				Vec3 center;
+				if (screen != null) {
+					double cx = origin.getX() + 0.5 + side.rightX * screen.width() * 0.5 + side.upX * screen.height() * 0.5 + side.faceX * 0.5;
+					double cy = origin.getY() + 0.5 + side.rightY * screen.width() * 0.5 + side.upY * screen.height() * 0.5 + side.faceY * 0.5;
+					double cz = origin.getZ() + 0.5 + side.rightZ * screen.width() * 0.5 + side.upZ * screen.height() * 0.5 + side.faceZ * 0.5;
+					center = new Vec3(cx, cy, cz);
+				} else {
+					center = Vec3.atCenterOf(origin);
+				}
 				float dist = (float) playerCenter.distanceTo(center);
 				float volume = Math.max(0.0f, Math.min(1.0f, 1.0f - dist / 64.0f));
 				if (volume < 0.01f) volume = 0.0f;
 
 				if (Math.abs(volume - state.lastVolume) > 0.01f) {
-					RinkuBrowser browser = ScreenBrowserManager.getBrowser(pos, sideEntry.getKey());
+					RinkuBrowser browser = ScreenBrowserManager.getBrowser(origin, side);
 					if (browser != null) {
-						String js = "document.querySelectorAll('video,audio').forEach(function(e){e.volume=" + volume + "})";
+						String js = String.format(java.util.Locale.ROOT, "document.querySelectorAll('video,audio').forEach(function(e){e.volume=%f})", volume);
 						browser.executeJavaScript(js, "", 0);
 						state.lastVolume = volume;
 					}
