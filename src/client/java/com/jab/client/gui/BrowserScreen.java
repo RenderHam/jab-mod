@@ -14,21 +14,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.CharacterEvent;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import org.lwjgl.glfw.GLFW;
 
-/**
- * The interactive browser view. A URL bar sits on top; everything below it is the live
- * page, which receives mouse and keyboard input. URL changes round-trip to the server
- * so the wall state stays authoritative.
- */
 public class BrowserScreen extends Screen {
 	private final BlockPos pos;
 	private final BlockSide side;
@@ -83,8 +74,8 @@ public class BrowserScreen extends Screen {
 	}
 
 	@Override
-	public void resize(int width, int height) {
-		super.resize(width, height);
+	public void resize(Minecraft mc, int width, int height) {
+		super.resize(mc, width, height);
 		updateDisplayRect();
 		resizeBrowser();
 	}
@@ -96,10 +87,9 @@ public class BrowserScreen extends Screen {
 		displayH = height - TOOLBAR_HEIGHT;
 	}
 
-	/** The browser runs at screen resolution, so it has to be resized when the GUI is. */
 	private void resizeBrowser() {
 		if (browser != null) {
-			int guiScale = Minecraft.getInstance().getWindow().getGuiScale();
+			int guiScale = (int) Minecraft.getInstance().getWindow().getGuiScale();
 			int bW = (int) (displayW * guiScale);
 			int bH = (int) (displayH * guiScale);
 			browser.resize(Math.max(1, bW), Math.max(1, bH));
@@ -128,7 +118,6 @@ public class BrowserScreen extends Screen {
 		addRenderableWidget(urlBox);
 	}
 
-	/** Round-trips in-page navigation (back/forward/links) to the server. */
 	private void syncUrlFromBrowser() {
 		if (browser == null || urlBox == null || urlBox.isFocused()) return;
 		String current = browser.getURL();
@@ -164,12 +153,12 @@ public class BrowserScreen extends Screen {
 				drawLoadingText(guiGraphics);
 				return;
 			}
-			Identifier texId = browser.getTextureIdentifier();
+			ResourceLocation texId = browser.getTextureIdentifier();
 			if (texId == null) {
 				drawLoadingText(guiGraphics);
 				return;
 			}
-			guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texId, displayX, displayY, 0f, 0f, displayW, displayH, displayW, displayH);
+			guiGraphics.blit(texId, displayX, displayY, 0f, 0f, displayW, displayH, displayW, displayH);
 		} catch (Exception e) {
 			JabMod.LOGGER.warn("Browser render failed for pos={} side={}", pos, side, e);
 			browser = null;
@@ -197,75 +186,69 @@ public class BrowserScreen extends Screen {
 	}
 
 	@Override
-	public boolean mouseClicked(MouseButtonEvent event, boolean bl) {
-		double mx = event.x();
-		double my = event.y();
-
-		if (my < TOOLBAR_HEIGHT) {
-			if (urlBox != null && urlBox.isMouseOver(mx, my)) {
+	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+		if (mouseY < TOOLBAR_HEIGHT) {
+			if (urlBox != null && urlBox.isMouseOver(mouseX, mouseY)) {
 				urlBox.setFocused(true);
-				return urlBox.mouseClicked(event, true);
+				return urlBox.mouseClicked(mouseX, mouseY, button);
 			}
 			return true;
 		}
 
 		if (browser != null) {
-			int bx = toBrowserX(mx);
-			int by = toBrowserY(my);
+			int bx = toBrowserX(mouseX);
+			int by = toBrowserY(mouseY);
 			if (bx >= 0 && by >= 0) {
 				browser.sendMouseMove(bx, by);
-				browser.sendMousePress(bx, by, event.button());
+				browser.sendMousePress(bx, by, button);
 				return true;
 			}
 		}
-		return super.mouseClicked(event, bl);
+		return super.mouseClicked(mouseX, mouseY, button);
 	}
 
 	@Override
-	public boolean mouseReleased(MouseButtonEvent event) {
-		double mx = event.x();
-		double my = event.y();
-
-		if (browser != null && my >= TOOLBAR_HEIGHT) {
-			int bx = toBrowserX(mx);
-			int by = toBrowserY(my);
+	public boolean mouseReleased(double mouseX, double mouseY, int button) {
+		if (browser != null && mouseY >= TOOLBAR_HEIGHT) {
+			int bx = toBrowserX(mouseX);
+			int by = toBrowserY(mouseY);
 			if (bx >= 0 && by >= 0) {
 				browser.sendMouseMove(bx, by);
-				browser.sendMouseRelease(bx, by, event.button());
+				browser.sendMouseRelease(bx, by, button);
 				return true;
 			}
 		}
-		return super.mouseReleased(event);
+		return super.mouseReleased(mouseX, mouseY, button);
 	}
 
 	@Override
-	public boolean mouseScrolled(double x, double y, double horizontal, double vertical) {
-		if (browser != null && y >= TOOLBAR_HEIGHT) {
-			int bx = toBrowserX(x);
-			int by = toBrowserY(y);
+	public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double vertical) {
+		if (browser != null && mouseY >= TOOLBAR_HEIGHT) {
+			int bx = toBrowserX(mouseX);
+			int by = toBrowserY(mouseY);
 			if (bx >= 0 && by >= 0) {
 				browser.sendMouseWheel(bx, by, vertical * 100, 0);
 				return true;
 			}
 		}
-		return super.mouseScrolled(x, y, horizontal, vertical);
+		return super.mouseScrolled(mouseX, mouseY, horizontal, vertical);
 	}
 
 	@Override
-	public boolean keyPressed(KeyEvent event) {
+	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
 		if (urlBox != null && urlBox.isFocused()) {
-			if (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER) {
+			if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
 				navigateToUrl(urlBox.getValue());
 				return true;
 			}
-			if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
+			if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
 				urlBox.setFocused(false);
 				return true;
 			}
-			return urlBox.keyPressed(event);
+			return urlBox.keyPressed(keyCode, scanCode, modifiers);
 		}
 
-		if ((event.modifiers() & GLFW.GLFW_MOD_CONTROL) != 0 && event.key() == GLFW.GLFW_KEY_L) {
+		if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0 && keyCode == GLFW.GLFW_KEY_L) {
 			if (urlBox != null) {
 				urlBox.setFocused(true);
 				urlBox.setCursorPosition(urlBox.getValue().length());
@@ -273,32 +256,32 @@ public class BrowserScreen extends Screen {
 			return true;
 		}
 
-		if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
+		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
 			onClose();
 			return true;
 		}
 
 		if (browser != null) {
-			browser.sendKeyPress(event.key(), event.scancode(), event.modifiers());
+			browser.sendKeyPress(keyCode, scanCode, modifiers);
 		}
 		return true;
 	}
 
 	@Override
-	public boolean keyReleased(KeyEvent event) {
+	public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
 		if (browser != null && !(urlBox != null && urlBox.isFocused())) {
-			browser.sendKeyRelease(event.key(), event.scancode(), event.modifiers());
+			browser.sendKeyRelease(keyCode, scanCode, modifiers);
 		}
-		return super.keyReleased(event);
+		return super.keyReleased(keyCode, scanCode, modifiers);
 	}
 
 	@Override
-	public boolean charTyped(CharacterEvent event) {
+	public boolean charTyped(char chr, int modifiers) {
 		if (urlBox != null && urlBox.isFocused()) {
-			return urlBox.charTyped(event);
+			return urlBox.charTyped(chr, modifiers);
 		}
 		if (browser != null) {
-			browser.sendKeyTyped((char) event.codepoint(), event.modifiers());
+			browser.sendKeyTyped(chr, modifiers);
 		}
 		return true;
 	}

@@ -116,13 +116,13 @@ public class ScreenData {
 
 	public static ScreenData deserialize(CompoundTag tag) {
 		ScreenData data = new ScreenData();
-		data.side = BlockSide.lenientValueOf(tag.getStringOr("Side", "BOTTOM"));
-		data.width = Math.clamp(tag.getIntOr("Width", 1), 1, 32);
-		data.height = Math.clamp(tag.getIntOr("Height", 1), 1, 32);
-		data.resolutionX = Math.clamp(tag.getIntOr("ResX", JabConfig.get().defaultResolutionX()), 1, 7680);
-		data.resolutionY = Math.clamp(tag.getIntOr("ResY", JabConfig.get().defaultResolutionY()), 1, 4320);
-		data.url = tag.getStringOr("Url", "");
-		data.audioMode = AudioMode.lenientValueOf(tag.getStringOr("AudioMode", "GLOBAL"));
+		data.side = BlockSide.lenientValueOf(tag.contains("Side") ? tag.getString("Side") : "BOTTOM");
+		data.width = Math.clamp(tag.contains("Width") ? tag.getInt("Width") : 1, 1, 32);
+		data.height = Math.clamp(tag.contains("Height") ? tag.getInt("Height") : 1, 1, 32);
+		data.resolutionX = Math.clamp(tag.contains("ResX") ? tag.getInt("ResX") : JabConfig.get().defaultResolutionX(), 1, 7680);
+		data.resolutionY = Math.clamp(tag.contains("ResY") ? tag.getInt("ResY") : JabConfig.get().defaultResolutionY(), 1, 4320);
+		data.url = tag.contains("Url") ? tag.getString("Url") : "";
+		data.audioMode = AudioMode.lenientValueOf(tag.contains("AudioMode") ? tag.getString("AudioMode") : "GLOBAL");
 		return data;
 	}
 }

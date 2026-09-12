@@ -13,7 +13,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
@@ -26,7 +26,7 @@ public record ScreenActionC2SPacket(BlockPos pos, BlockSide side, String url) im
 	private static final java.util.Map<java.util.UUID, Long> lastSent = new java.util.concurrent.ConcurrentHashMap<>();
 
 	public static final CustomPacketPayload.Type<ScreenActionC2SPacket> ID =
-			new CustomPacketPayload.Type<>(Identifier.parse(JabMod.id("screen_action")));
+			new CustomPacketPayload.Type<>(ResourceLocation.parse(JabMod.id("screen_action")));
 
 	public static final StreamCodec<ByteBuf, ScreenActionC2SPacket> CODEC = StreamCodec.composite(
 			BlockPos.STREAM_CODEC, ScreenActionC2SPacket::pos,

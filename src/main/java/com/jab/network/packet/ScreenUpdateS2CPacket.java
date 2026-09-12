@@ -8,12 +8,12 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 /** Targeted update for a single screen (URL, resolution or audio mode changed). */
 public record ScreenUpdateS2CPacket(BlockPos pos, ScreenData screen) implements CustomPacketPayload {
 	public static final CustomPacketPayload.Type<ScreenUpdateS2CPacket> ID =
-			new CustomPacketPayload.Type<>(Identifier.parse(JabMod.id("screen_update")));
+			new CustomPacketPayload.Type<>(ResourceLocation.parse(JabMod.id("screen_update")));
 
 	public static final StreamCodec<ByteBuf, ScreenUpdateS2CPacket> CODEC = StreamCodec.composite(
 			BlockPos.STREAM_CODEC, ScreenUpdateS2CPacket::pos,

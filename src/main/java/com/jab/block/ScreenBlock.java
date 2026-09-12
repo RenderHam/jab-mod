@@ -7,10 +7,8 @@ import com.jab.registry.ModBlocks;
 import com.mojang.serialization.MapCodec;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
@@ -22,8 +20,6 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 
 import org.jetbrains.annotations.Nullable;
-
-import java.util.function.BiConsumer;
 
 /**
  * The screen block. A wall of these blocks forms a multiblock display; only the origin
@@ -72,16 +68,17 @@ public class ScreenBlock extends BaseEntityBlock {
 	}
 
 	@Override
-	protected void onExplosionHit(BlockState state, ServerLevel level, BlockPos pos, Explosion explosion, BiConsumer<ItemStack, BlockPos> dropConsumer) {
+	public void wasExploded(Level level, BlockPos pos, Explosion explosion) {
+		BlockState state = level.getBlockState(pos);
 		if (state.is(ModBlocks.SCREEN_BLOCK) && !state.getValue(HAS_TE)) {
 			destroyOriginForWallContaining(level, pos);
 		}
-		super.onExplosionHit(state, level, pos, explosion, dropConsumer);
+		super.wasExploded(level, pos, explosion);
 	}
 
 	@Override
-	protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
-		if (state.is(ModBlocks.SCREEN_BLOCK)) {
+	public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
+		if (movedByPiston && state.is(ModBlocks.SCREEN_BLOCK)) {
 			if (state.getValue(HAS_TE)) {
 				BlockEntity be = level.getBlockEntity(pos);
 				if (be instanceof ScreenBlockEntity sbe) sbe.onDestroy();
@@ -89,7 +86,7 @@ public class ScreenBlock extends BaseEntityBlock {
 				destroyOriginForWallContaining(level, pos);
 			}
 		}
-		super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
+		super.onRemove(state, level, pos, newState, movedByPiston);
 	}
 
 	/**

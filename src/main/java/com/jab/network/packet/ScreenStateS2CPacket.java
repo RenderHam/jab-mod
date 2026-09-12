@@ -9,7 +9,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +17,7 @@ import java.util.List;
 /** Sent to players whenever the full state of a wall changes (screen added/removed). */
 public record ScreenStateS2CPacket(BlockPos pos, List<ScreenData> screens) implements CustomPacketPayload {
 	public static final CustomPacketPayload.Type<ScreenStateS2CPacket> ID =
-			new CustomPacketPayload.Type<>(Identifier.parse(JabMod.id("screen_state")));
+			new CustomPacketPayload.Type<>(ResourceLocation.parse(JabMod.id("screen_state")));
 
 	public static final StreamCodec<ByteBuf, ScreenStateS2CPacket> CODEC = StreamCodec.composite(
 			BlockPos.STREAM_CODEC, ScreenStateS2CPacket::pos,

@@ -17,8 +17,6 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -140,21 +138,22 @@ public class ScreenBlockEntity extends BlockEntity {
 	}
 
 	@Override
-	protected void saveAdditional(ValueOutput output) {
-		super.saveAdditional(output);
-		var listOut = output.list("Screens", CompoundTag.CODEC);
+	protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+		super.saveAdditional(tag, registries);
+		ListTag listTag = new ListTag();
 		for (ScreenData s : screens.values()) {
-			listOut.add(s.serialize());
+			listTag.add(s.serialize());
 		}
+		tag.put("Screens", listTag);
 	}
 
 	@Override
-	protected void loadAdditional(ValueInput input) {
-		super.loadAdditional(input);
+	protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+		super.loadAdditional(tag, registries);
 		screens.clear();
-		var listIn = input.listOrEmpty("Screens", CompoundTag.CODEC);
-		for (var tag : listIn) {
-			ScreenData sd = ScreenData.deserialize(tag);
+		ListTag listTag = tag.getList("Screens", 10);
+		for (int i = 0; i < listTag.size(); i++) {
+			ScreenData sd = ScreenData.deserialize(listTag.getCompound(i));
 			screens.put(sd.side(), sd);
 		}
 		rebuildScreensSnapshot();
