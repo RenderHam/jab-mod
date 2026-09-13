@@ -1,6 +1,6 @@
 {
 	"display": {
-		"icon": { "id": "jab:screen_block" },
+		"icon": { "item": "jab:screen_block" },
 		"title": { "text": "Screen Master" },
 		"description": { "text": "Create a web screen" },
 		"frame": "task",

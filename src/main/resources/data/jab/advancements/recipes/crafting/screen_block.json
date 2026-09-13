@@ -5,7 +5,7 @@
 			"conditions": {
 				"items": [
 					{
-						"id": "jab:screen_block"
+						"item": "jab:screen_block"
 					}
 				]
 			}
