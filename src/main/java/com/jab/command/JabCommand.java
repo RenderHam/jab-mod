@@ -44,14 +44,10 @@ public class JabCommand {
 		);
 	}
 
-	/**
-	 * Turns the wall the player is looking at into a display. The wall must be a solid
-	 * rectangle of screen blocks (2x2 minimum); the origin block gets the block entity.
-	 */
 	private static int create(CommandContext<CommandSourceStack> ctx, String url) throws CommandSyntaxException {
 		var source = ctx.getSource();
 		var player = source.getPlayerOrException();
-		var world = player.level();
+		var world = player.level;
 
 		WallRaycast.Result look = WallRaycast.raycast(player, world);
 		if (look == null) {
@@ -82,14 +78,14 @@ public class JabCommand {
 				return 0;
 			}
 			addDisplay(sbe, look.side(), size, url);
-			source.sendSuccess(() -> Component.literal("Created display (" + size.width() + "x" + size.height() + ")"), true);
+			source.sendSuccess(Component.literal("Created display (" + size.width() + "x" + size.height() + ")"), true);
 			return 1;
 		}
 
 		world.setBlock(originPos, world.getBlockState(originPos).setValue(ScreenBlock.HAS_TE, true), 3);
 		if (world.getBlockEntity(originPos) instanceof ScreenBlockEntity sbe) {
 			addDisplay(sbe, look.side(), size, url);
-			source.sendSuccess(() -> Component.literal("Created display (" + size.width() + "x" + size.height() + ")"), true);
+			source.sendSuccess(Component.literal("Created display (" + size.width() + "x" + size.height() + ")"), true);
 			return 1;
 		}
 
@@ -105,13 +101,13 @@ public class JabCommand {
 	private static int remove(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		var source = ctx.getSource();
 		var player = source.getPlayerOrException();
-		var world = player.level();
+		var world = player.level;
 
 		var result = findScreenBE(player, world);
 		if (result == null) return 0;
 
 		if (result.be().removeScreen(result.side())) {
-			source.sendSuccess(() -> Component.literal("Display removed on " + result.side()), true);
+			source.sendSuccess(Component.literal("Display removed on " + result.side()), true);
 			return 1;
 		}
 		source.sendFailure(Component.literal("No display on this face"));
@@ -121,7 +117,7 @@ public class JabCommand {
 	private static int setUrl(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		var source = ctx.getSource();
 		var player = source.getPlayerOrException();
-		var world = player.level();
+		var world = player.level;
 		String raw = StringArgumentType.getString(ctx, "url");
 		String url = UrlUtil.sanitize(raw);
 
@@ -134,7 +130,7 @@ public class JabCommand {
 		if (result == null) return 0;
 
 		if (result.be().setUrl(result.side(), url)) {
-			source.sendSuccess(() -> Component.literal("URL set to " + url), true);
+			source.sendSuccess(Component.literal("URL set to " + url), true);
 			return 1;
 		}
 		source.sendFailure(Component.literal("No display on this face"));
@@ -144,13 +140,13 @@ public class JabCommand {
 	private static int setAudioMode(CommandContext<CommandSourceStack> ctx, ScreenData.AudioMode mode) throws CommandSyntaxException {
 		var source = ctx.getSource();
 		var player = source.getPlayerOrException();
-		var world = player.level();
+		var world = player.level;
 
 		var result = findScreenBE(player, world);
 		if (result == null) return 0;
 
 		if (result.be().setAudioMode(result.side(), mode)) {
-			source.sendSuccess(() -> Component.literal("Audio mode set to " + mode.name().toLowerCase()), true);
+			source.sendSuccess(Component.literal("Audio mode set to " + mode.name().toLowerCase()), true);
 			return 1;
 		}
 		source.sendFailure(Component.literal("No display on this face"));
@@ -176,52 +172,52 @@ public class JabCommand {
 	private static int debug(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		var source = ctx.getSource();
 		var player = source.getPlayerOrException();
-		var world = player.level();
+		var world = player.level;
 
-		source.sendSuccess(() -> Component.literal("§6=== JAB Debug ==="), false);
-		source.sendSuccess(() -> Component.literal("§eServer-side only (client info via log)"), false);
+		source.sendSuccess(Component.literal("\u00a76=== JAB Debug ==="), false);
+		source.sendSuccess(Component.literal("\u00a7eServer-side only (client info via log)"), false);
 
 		WallRaycast.Result cast = WallRaycast.raycast(player, world);
 		if (cast == null) {
-			source.sendSuccess(() -> Component.literal("§cNot looking at a screen block"), false);
-			source.sendSuccess(() -> Component.literal("§6======================"), false);
+			source.sendSuccess(Component.literal("\u00a7cNot looking at a screen block"), false);
+			source.sendSuccess(Component.literal("\u00a76======================"), false);
 			return 1;
 		}
 
 		BlockSide side = cast.side();
-		source.sendSuccess(() -> Component.literal("§eLooked at: §f" + cast.hitPos().toShortString() + " §7side=" + side), false);
-		source.sendSuccess(() -> Component.literal("§eBlock: §f" + world.getBlockState(cast.hitPos()).getBlock()), false);
+		source.sendSuccess(Component.literal("\u00a7eLooked at: \u00a7f" + cast.hitPos().toShortString() + " \u00a77side=" + side), false);
+		source.sendSuccess(Component.literal("\u00a7eBlock: \u00a7f" + world.getBlockState(cast.hitPos()).getBlock()), false);
 
 		Multiblock.WallSize fromHit = Multiblock.measure(world, cast.hitPos(), side);
-		source.sendSuccess(() -> Component.literal("§eFrom-hit wall size: §f" + fromHit.width() + "x" + fromHit.height()), false);
+		source.sendSuccess(Component.literal("\u00a7eFrom-hit wall size: \u00a7f" + fromHit.width() + "x" + fromHit.height()), false);
 
-		source.sendSuccess(() -> Component.literal("§eOrigin: §f" + cast.origin().toShortString()), false);
+		source.sendSuccess(Component.literal("\u00a7eOrigin: \u00a7f" + cast.origin().toShortString()), false);
 
 		Multiblock.WallSize size = Multiblock.measure(world, cast.origin(), side);
-		source.sendSuccess(() -> Component.literal("§eWall size: §f" + size.width() + "x" + size.height()), false);
+		source.sendSuccess(Component.literal("\u00a7eWall size: \u00a7f" + size.width() + "x" + size.height()), false);
 
 		BlockPos gap = Multiblock.check(world, cast.origin(), size.width(), size.height(), side);
 		if (gap != null) {
-			source.sendSuccess(() -> Component.literal("§cGap at: §f" + gap.toShortString()), false);
+			source.sendSuccess(Component.literal("\u00a7cGap at: \u00a7f" + gap.toShortString()), false);
 		} else {
-			source.sendSuccess(() -> Component.literal("§aWall contiguous"), false);
+			source.sendSuccess(Component.literal("\u00a7aWall contiguous"), false);
 		}
 
 		if (world.getBlockEntity(cast.origin()) instanceof ScreenBlockEntity sbe) {
-			source.sendSuccess(() -> Component.literal("§eHas BE: §ayes"), false);
-			source.sendSuccess(() -> Component.literal("§eScreens: §f" + sbe.getScreens().size()), false);
+			source.sendSuccess(Component.literal("\u00a7eHas BE: \u00a7ayes"), false);
+			source.sendSuccess(Component.literal("\u00a7eScreens: \u00a7f" + sbe.getScreens().size()), false);
 			for (ScreenData sd : sbe.getScreens()) {
-				source.sendSuccess(() -> Component.literal("§7  [side=" + sd.side()
-						+ " §7w=" + sd.width() + " h=" + sd.height()
-						+ " §7url=§f" + sd.url()
-						+ " §7res=§f" + sd.resolutionX() + "x" + sd.resolutionY()
-						+ " §7audio=§f" + sd.audioMode().name().toLowerCase() + "]"), false);
+				source.sendSuccess(Component.literal("\u00a77  [side=" + sd.side()
+						+ " \u00a77w=" + sd.width() + " h=" + sd.height()
+						+ " \u00a77url=\u00a7f" + sd.url()
+						+ " \u00a77res=\u00a7f" + sd.resolutionX() + "x" + sd.resolutionY()
+						+ " \u00a77audio=\u00a7f" + sd.audioMode().name().toLowerCase() + "]"), false);
 			}
 		} else {
-			source.sendSuccess(() -> Component.literal("§cHas BE: no"), false);
+			source.sendSuccess(Component.literal("\u00a7cHas BE: no"), false);
 		}
 
-		source.sendSuccess(() -> Component.literal("§6======================"), false);
+		source.sendSuccess(Component.literal("\u00a76======================"), false);
 		return 1;
 	}
 

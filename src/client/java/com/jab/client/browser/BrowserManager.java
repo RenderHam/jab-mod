@@ -75,7 +75,7 @@ public class BrowserManager {
 	 */
 	public static void resetCursor() {
 		try {
-			long win = Minecraft.getInstance().getWindow().handle();
+			long win = Minecraft.getInstance().getWindow().getWindow();
 			if (win != 0 && !GLFW.glfwWindowShouldClose(win)) {
 				boolean guiOpen = Minecraft.getInstance().screen != null;
 				int mode = guiOpen ? GLFW.GLFW_CURSOR_NORMAL : GLFW.GLFW_CURSOR_DISABLED;

@@ -4,13 +4,11 @@ import com.jab.blockentity.ScreenBlockEntity;
 import com.jab.config.JabConfig;
 import com.jab.registry.ModBlocks;
 
-import com.mojang.serialization.MapCodec;
-
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
@@ -20,10 +18,10 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.material.PushReaction;
+import net.minecraft.world.phys.BlockHitResult;
 
 import org.jetbrains.annotations.Nullable;
-
-import java.util.function.BiConsumer;
 
 /**
  * The screen block. A wall of these blocks forms a multiblock display; only the origin
@@ -38,11 +36,6 @@ public class ScreenBlock extends BaseEntityBlock {
 	}
 
 	@Override
-	protected MapCodec<? extends BaseEntityBlock> codec() {
-		return simpleCodec(ScreenBlock::new);
-	}
-
-	@Override
 	protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
 		builder.add(HAS_TE);
 	}
@@ -52,6 +45,11 @@ public class ScreenBlock extends BaseEntityBlock {
 		return RenderShape.MODEL;
 	}
 
+	@Override
+	public PushReaction getPistonPushReaction(BlockState state) {
+		return PushReaction.DESTROY;
+	}
+
 	@Nullable
 	@Override
 	public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
@@ -59,28 +57,38 @@ public class ScreenBlock extends BaseEntityBlock {
 	}
 
 	@Override
-	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, net.minecraft.world.phys.BlockHitResult hit) {
+	public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
 		return InteractionResult.PASS;
 	}
 
 	@Override
-	public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+	public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
 		if (!level.isClientSide() && state.is(ModBlocks.SCREEN_BLOCK) && !state.getValue(HAS_TE)) {
 			destroyOriginForWallContaining(level, pos);
 		}
-		return super.playerWillDestroy(level, pos, state, player);
+		super.playerWillDestroy(level, pos, state, player);
 	}
 
 	@Override
-	protected void onExplosionHit(BlockState state, ServerLevel level, BlockPos pos, Explosion explosion, BiConsumer<ItemStack, BlockPos> dropConsumer) {
-		if (state.is(ModBlocks.SCREEN_BLOCK) && !state.getValue(HAS_TE)) {
-			destroyOriginForWallContaining(level, pos);
+	public void wasExploded(Level level, BlockPos pos, Explosion explosion) {
+		for (Direction dir : Direction.values()) {
+			BlockPos neighbor = pos.relative(dir);
+			BlockState neighborState = level.getBlockState(neighbor);
+			if (neighborState.is(ModBlocks.SCREEN_BLOCK)) {
+				if (neighborState.getValue(HAS_TE)) {
+					BlockEntity be = level.getBlockEntity(neighbor);
+					if (be instanceof ScreenBlockEntity sbe) sbe.onDestroy();
+				} else {
+					destroyOriginForWallContaining(level, neighbor);
+				}
+				return;
+			}
 		}
-		super.onExplosionHit(state, level, pos, explosion, dropConsumer);
+		super.wasExploded(level, pos, explosion);
 	}
 
 	@Override
-	protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
+	public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
 		if (state.is(ModBlocks.SCREEN_BLOCK)) {
 			if (state.getValue(HAS_TE)) {
 				BlockEntity be = level.getBlockEntity(pos);
@@ -89,7 +97,7 @@ public class ScreenBlock extends BaseEntityBlock {
 				destroyOriginForWallContaining(level, pos);
 			}
 		}
-		super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
+		super.onRemove(state, level, pos, newState, movedByPiston);
 	}
 
 	/**

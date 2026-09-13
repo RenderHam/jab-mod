@@ -44,10 +44,10 @@ public class ScreenData {
 	public static ScreenData decode(BlockSide side, int width, int height, int resX, int resY, String url, AudioMode audioMode) {
 		ScreenData data = new ScreenData();
 		data.side = side;
-		data.width = Math.clamp(width, 1, 32);
-		data.height = Math.clamp(height, 1, 32);
-		data.resolutionX = Math.clamp(resX, 1, 7680);
-		data.resolutionY = Math.clamp(resY, 1, 4320);
+		data.width = Math.min(Math.max(width, 1), 32);
+		data.height = Math.min(Math.max(height, 1), 32);
+		data.resolutionX = Math.min(Math.max(resX, 1), 7680);
+		data.resolutionY = Math.min(Math.max(resY, 1), 4320);
 		data.url = url != null ? url : "";
 		data.audioMode = audioMode;
 		return data;
@@ -116,13 +116,13 @@ public class ScreenData {
 
 	public static ScreenData deserialize(CompoundTag tag) {
 		ScreenData data = new ScreenData();
-		data.side = BlockSide.lenientValueOf(tag.getStringOr("Side", "BOTTOM"));
-		data.width = Math.clamp(tag.getIntOr("Width", 1), 1, 32);
-		data.height = Math.clamp(tag.getIntOr("Height", 1), 1, 32);
-		data.resolutionX = Math.clamp(tag.getIntOr("ResX", JabConfig.get().defaultResolutionX()), 1, 7680);
-		data.resolutionY = Math.clamp(tag.getIntOr("ResY", JabConfig.get().defaultResolutionY()), 1, 4320);
-		data.url = tag.getStringOr("Url", "");
-		data.audioMode = AudioMode.lenientValueOf(tag.getStringOr("AudioMode", "GLOBAL"));
+		data.side = BlockSide.lenientValueOf(tag.getString("Side"));
+		data.width = Math.min(Math.max(tag.getInt("Width"), 1), 32);
+		data.height = Math.min(Math.max(tag.getInt("Height"), 1), 32);
+		data.resolutionX = Math.min(Math.max(tag.contains("ResX") ? tag.getInt("ResX") : JabConfig.get().defaultResolutionX(), 1), 7680);
+		data.resolutionY = Math.min(Math.max(tag.contains("ResY") ? tag.getInt("ResY") : JabConfig.get().defaultResolutionY(), 1), 4320);
+		data.url = tag.getString("Url");
+		data.audioMode = AudioMode.lenientValueOf(tag.getString("AudioMode"));
 		return data;
 	}
 }

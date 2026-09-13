@@ -9,9 +9,8 @@ import com.jab.registry.ModItems;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 
-import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.resources.ResourceLocation;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,12 +29,9 @@ public class JabMod implements ModInitializer {
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) ->
 				JabCommand.register(dispatcher));
-
-		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS)
-				.register(entries -> entries.accept(ModBlocks.SCREEN_BLOCK));
 	}
 
-	public static String id(String path) {
-		return MOD_ID + ":" + path;
+	public static ResourceLocation id(String path) {
+		return new ResourceLocation(MOD_ID, path);
 	}
 }
