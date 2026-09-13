@@ -63,6 +63,11 @@ jar {
 	}
 }
 
+remapJar {
+	archiveBaseName.set("jab-mod-${mod_version}-${minecraft_version}")
+	archiveVersion.set("")
+}
+
 // configure the maven publication
 publishing {
 	publications {
